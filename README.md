@@ -1,4 +1,4 @@
-# Tezxtures Hw 6
+# Bowling Alley Final Project
 ## Made by Samuel Volin for Fall 2015 CSCI-4229
 
 

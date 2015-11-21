@@ -35,6 +35,11 @@ object.o: object.c CSCIx229.h
 CSCIx229.a:fatal.o loadtexbmp.o print.o project.o errcheck.o object.o
 	ar -rcs $@ $^
 
+bowling.o: bowling.c bowling.h
+
+bowling.a: bowling.o
+	ar -rcs $@ $^
+
 # Compile rules
 .c.o:
 	gcc -c $(CFLG) $<
@@ -42,7 +47,7 @@ CSCIx229.a:fatal.o loadtexbmp.o print.o project.o errcheck.o object.o
 	g++ -c $(CFLG) $<
 
 #  Link
-final:final.o CSCIx229.a
+final:final.o CSCIx229.a bowling.a
 	gcc -O3 -o $@ $^   $(LIBS)
 
 #  Clean

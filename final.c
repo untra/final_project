@@ -18,23 +18,37 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #include "CSCIx229.h"
+#include "bowling.h"
 
 //  OpenGL with prototypes for glext
-#define GL_GLEXT_PROTOTYPES
+#define GL_GLxOffsetT_PROTOTYPES
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
 #include <GL/glut.h>
 #endif
 
+//Azimuth
+int th=0;
+//Elevation
+int ph=0;
+
+//Projection variables
+int mode = 1;
+int fov=55;
+double asp=1;
+double dim=50.0;
+
+//first person location
+double xOffset = 0;
+double yOffset = 0;
+double zOffset = -60;
+
+
 int axes=0;       //  Display axes
-int mode=0;       //  Projection mode
-int th=0;         //  Azimuth of view angle
-int ph=0;         //  Elevation of view angle
-int fov=55;       //  Field of view (for perspective)
-double asp=1;     //  Aspect ratio
-double dim=5.0;   //  Size of world
 double idle = 0.0;
 int window_width = 600;
 int window_height = 600;
@@ -49,21 +63,11 @@ int distance  =   5;  // Light distance
 int inc       =  10;  // Ball increment
 int smooth    =   1;  // Smooth/Flat shading
 int local     =   0;  // Local Viewer Model
-int emission  =   0;  // Emission intensity (%)
-int ambient   =  30;  // Ambient intensity (%)
-int diffuse   = 100;  // Diffuse intensity (%)
-int specular  =   0;  // Specular intensity (%)
-int shininess =   0;  // Shininess (power of two)
-float shinyvec[1];    // Shininess (value)
-int zh        =  90;  // Light azimuth
-float ylight  =   0;  // Elevation of light
+
 unsigned int side = 0;// side texture
 unsigned int end = 0; // end texture
-
-
-double EX = 0; // x-coordinate of camera position
-double EY = 0; // y-coordinate of camera position
-double EZ = 10; // z-coordinate of camera position
+unsigned int floor_texture = 0; // floor texture
+unsigned int arrow_texture = 0; // floor texture
 
 double AX = 0; // x-coordinate of where the camera is looking
 double AY = 0; // y-coordinate of where the camera is looking
@@ -92,346 +96,52 @@ void Print(const char* format , ...)
   glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,*ch++);
 }
 
+void checkOffsets()
+{
+    if(xOffset > 2000)
+        xOffset = 2000;
+    else if(xOffset < -2000)
+        xOffset = -2000;
+    if(zOffset > 2000)
+        zOffset = 2000;
+    else if(zOffset < -2000)
+        zOffset = -2000;
+}
 
 double mouse_rotation(double delta, double mid)
 {
   return 180 * (delta / mid);
 }
 
-/*
-*  Draw vertex in polar coordinates with normal
-*/
-static void Vertex(double th,double ph)
-{
-  double x = Sin(th)*Cos(ph);
-  double y = Cos(th)*Cos(ph);
-  double z =         Sin(ph);
-  //  For a sphere at the origin, the position
-  //  and normal vectors are the same
-  glNormal3d(x,y,z);
-  glVertex3d(x,y,z);
-}
-
-static void barrel(double x, double y, double z,
-  double dx, double dy, double dz,
-  double th )
-  {
-    int resolution = 24;
-    double fraction = 15;
-    double ex = 1.25;
-    double tilt = Sin(60);
-    double oneminustilt = 1 - tilt;
-    glEnable(GL_TEXTURE_2D);
-    // Translations
-    glPushMatrix();
-    glTranslated(x, y, z);
-    glRotated(th, 0, 1, 0);
-    glScaled(dx, dy, dz);
-    int i;
-    float f;
-
-
-
-    glBindTexture(GL_TEXTURE_2D,end);
-    glBegin(GL_TRIANGLE_FAN);
-    glColor3f(1,1,1);
-    glNormal3f( 0, -1, 0);
-    glTexCoord2f(0.55,0.5);
-    glVertex3f(0,-1, 0);
-    //bottom
-    for(i = 0; i <= resolution ; i++)
-    {
-      glTexCoord2f(0.47*Cos(fraction*i)+0.60,0.5*Sin(fraction*i)+0.5);
-      glVertex3f(Cos(fraction*i),-1, Sin(fraction*i));
-    }
-    glEnd();
-
-    //side 1
-    glBindTexture(GL_TEXTURE_2D,side);
-    glBegin(GL_QUAD_STRIP);
-    glColor3f(1,1,1);
-    for(i = 0; i <= resolution ; i++)
-    {
-      f = (double)i / resolution;
-      glNormal3f( oneminustilt * Cos(fraction*i), -tilt, oneminustilt * Sin(fraction*i));
-      glTexCoord2f(f,0.0); glVertex3f(Cos(fraction*i),-1, Sin(fraction*i));
-      glTexCoord2f(f,0.2); glVertex3f(ex*Cos(fraction*i),-0.5, ex*Sin(fraction*i));
-    }
-    glEnd();
-    //side 2
-    glBegin(GL_QUAD_STRIP);
-    glColor3f(1,1,1);
-    for(i = 0; i <= resolution ; i++)
-    {
-
-      f = (double)i / resolution;
-      glNormal3f( Cos(fraction*i), 0, Sin(fraction*i));
-      glTexCoord2f(f,0.2); glVertex3f(ex*Cos(fraction*i),-0.5, ex*Sin(fraction*i));
-      glTexCoord2f(f,0.8); glVertex3f(ex*Cos(fraction*i),0.5, ex*Sin(fraction*i));
-    }
-    glEnd();
-    //side 3
-    glBegin(GL_QUAD_STRIP);
-    glColor3f(1,1,1);
-    for(i = 0; i <= resolution ; i++)
-    {
-      f = (double)i / resolution;
-      glNormal3f( oneminustilt * Cos(fraction*i), tilt,  oneminustilt * Sin(fraction*i));
-      glTexCoord2f(f,0.8); glVertex3f(ex*Cos(fraction*i),0.5, ex*Sin(fraction*i));
-      glTexCoord2f(f,1.0); glVertex3f(Cos(fraction*i),1, Sin(fraction*i));
-    }
-    glEnd();
-
-    glBindTexture(GL_TEXTURE_2D,end);
-    glBegin(GL_TRIANGLE_FAN);
-    glColor3f(1,1,1);
-    glNormal3f( 0, 1, 0);
-    glTexCoord2f(0.55,0.5);
-    glVertex3f(0,1, 0);
-    for(i = 0; i <= resolution ; i++)
-    {
-      glTexCoord2f(0.47*Cos(fraction*i)+0.60, 0.5*Sin(fraction*i)+0.5);
-      glVertex3f(Cos(fraction*i),1, Sin(fraction*i));
-    }
-    glEnd();
-    glDisable(GL_TEXTURE_2D);
-    glPopMatrix();
-  }
-
-
-  // bowling pins
-  static void bowling_pin(double x, double y, double z,
-    double dx, double dy, double dz,
-    double th )
-    {
-      int resolution = 24;
-      double fraction = 15;
-      double tilt,  width, alphawidth, height, additive;
-      glEnable(GL_TEXTURE_2D);
-      // Translations
-      glPushMatrix();
-      glTranslated(x, y, z);
-      glRotated(th, 0, 1, 0);
-      glScaled(dx, dy, dz);
-      int i;
-      int k;
-      float f;
-      double alphaheight = 0.0;
-      double alphatilt = 0.0;
-      double turning = 0.0;
-
-      glBegin(GL_TRIANGLE_FAN);
-      glColor3f(1,1,1);
-      glNormal3f( 0, -1, 0);
-      glVertex3f(0,0, 0);
-      //bottom
-      for(i = 0; i <= resolution ; i++)
-      {
-        glVertex3f(Cos(fraction*i),0, Sin(fraction*i));
-      }
-      glEnd();
-      //side 1
-      for(k = 1; k <= 13 ; k++)
-      {
-        additive = k < 12 ? (double)((12 - k)*(12 - k))/300 : 0;
-        tilt = alphatilt;
-        alphatilt = Sin((k)*15+turning);
-        width = 1 + tilt;
-        alphawidth = 1 + alphatilt;
-        height = alphaheight;
-        alphaheight +=  0.5;
-        alphaheight += additive;
-        glBegin(GL_QUAD_STRIP);
-        if((k == 13))
-        {
-          glColor3f(0.765,0.0,0.2);
-        }
-        else
-        {
-          glColor3f(1,1,1);
-        }
-        for(i = 0; i <= resolution ; i++)
-        {
-          f = (double)i / resolution;
-          glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-          glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-          glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-        }
-        glEnd();
-      }
-      //middle white stripe
-      width = alphawidth;
-      alphawidth = 0.7;
-      height = alphaheight;
-      alphaheight += 0.5;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(1,1,1);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      //top red stripe
-      width = alphawidth;
-      alphawidth = 0.75;
-      height = alphaheight;
-      alphaheight += 0.5;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(0.765,0.0,0.2);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      //top white tie
-      width = alphawidth;
-      alphawidth = 0.85;
-      height = alphaheight;
-      alphaheight += 1.0;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(1,1,1);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      //top white tie
-      width = alphawidth;
-      alphawidth = 0.75;
-      height = alphaheight;
-      alphaheight += 0.5;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(1,1,1);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      //top white tie
-      width = alphawidth;
-      alphawidth = 0.60;
-      height = alphaheight;
-      alphaheight += 0.35;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(1,1,1);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      //top white tie
-      width = alphawidth;
-      alphawidth = 0.15;
-      height = alphaheight;
-      alphaheight += 0.2;
-      glBegin(GL_QUAD_STRIP);
-      glColor3f(1,1,1);
-      for(i = 0; i <= resolution ; i++)
-      {
-        f = (double)i / resolution;
-        glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
-        glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
-        glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
-      }
-      glEnd();
-      glBegin(GL_TRIANGLE_FAN);
-      glColor3f(1,1,1);
-      glNormal3f( 0, 1, 0);
-      glVertex3f(0,alphaheight, 0);
-      //top
-      for(i = 0; i <= resolution ; i++)
-      {
-        glVertex3f(alphawidth * Sin(fraction*i), alphaheight, alphawidth * Cos(fraction*i));
-      }
-      glEnd();
-      glPopMatrix();
-    }
-
-  static void ball(double x,double y,double z,double r)
-  {
-    int th,ph;
-    float yellow[] = {1.0,1.0,1.0,1.0};
-    float Emission[]  = {0.0,0.0,0.01*emission,1.0};
-    //  Save transformation
-    glPushMatrix();
-    //  Offset, scale and rotate
-    glTranslated(x,y,z);
-    glScaled(r,r,r);
-    //  White ball
-    glColor3f(1,1,1);
-    glMaterialfv(GL_FRONT,GL_SHININESS,shinyvec);
-    glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
-    glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
-    //  Bands of latitude
-    for (ph=-90;ph<90;ph+=inc)
-    {
-      glBegin(GL_QUAD_STRIP);
-      for (th=0;th<=360;th+=2*inc)
-      {
-        Vertex(th,ph);
-        Vertex(th,ph+inc);
-      }
-      glEnd();
-    }
-    //  Undo transofrmations
-    glPopMatrix();
-  }
-
-
   /*
   *  OpenGL (GLUT) calls this routine to display the scene
   */
   void display()
   {
-    const double len=1.5;  //  Length of axes
+    const double len=10.0;  //  Length of axes
     //  Erase the window and the depth buffer
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     //  Enable Z-buffering in OpenGL
     glEnable(GL_DEPTH_TEST);
     //  Undo previous transformations
     glLoadIdentity();
-    //  Orthogonal - set world orientation
+
     if(mode == 0)
     {
-      glRotatef(ph,1,0,0);
-      glRotatef(th,0,1,0);
+        //Set up perspective projection
+        double Ex = 2*dim*Sin(th)*Cos(ph);
+        double Ey = 2*dim*Sin(ph);
+        double Ez = -2*dim*Cos(th)*Cos(ph);
+        gluLookAt(Ex,Ey,Ez ,0,0,0, 0,Cos(ph),0);
     }
-    //  Perspective - set eye position
-    else if (mode == 1)
+    else
     {
-      double Ex = -2*dim*Sin(th)*Cos(ph);
-      double Ey = +2*dim        *Sin(ph);
-      double Ez = +2*dim*Cos(th)*Cos(ph);
-      gluLookAt(Ex,Ey,Ez , 0,0,0 , 0,Cos(ph),0);
+        //Set up first person projection
+        double Cx = -2*dim*Sin(th)*Cos(ph) + xOffset;
+        double Cy = 2*dim*Sin(ph) + yOffset;
+        double Cz = 2*dim*Cos(th)*Cos(ph) + zOffset;
+        gluLookAt(xOffset,yOffset,zOffset ,Cx,Cy,Cz, 0,Cos(ph),0);
     }
-    // First person view
-    else{
-		// Recalculate where the camera is looking
-		AX = -2*dim*Sin(th)*Cos(ph);
-		AY = -2*dim*Sin(ph);
-		AZ = -2*dim*Cos(th)*Cos(ph);
-		// Orient the scene so it imitates first person movement
-		gluLookAt(EX, EY, EZ, AX + EX, AY + EY, AZ + EZ, UX, UY, UZ);
-	}
-
-
-    //  Flat or smooth shading
-    // glShadeModel(smooth ? GL_SMOOTH : GL_FLAT);
 
     //  Light switch
     if (light)
@@ -442,10 +152,10 @@ static void barrel(double x, double y, double z,
       float Specular[]  = {1,1,0,1};
       float white[]     = {1,1,1,1};
       //  Light direction
-      float Position[]  = {5*Cos(idle),0,5*Sin(idle),1};
+      float Position[]  = {10*Cos(idle),10,10*Sin(idle),1};
       // printf("%f | %f | %f\n" , Position[0] , Position[1] , Position[2]    );
       //  Draw light position as ball (still no lighting here)
-      ball(Position[0],Position[1],Position[2] , 0.1);
+      sphere(Position[0],Position[1],Position[2] , 1,1,1);
       //  Enable lighting with normalization
       glEnable(GL_NORMALIZE);
       //  Enable lighting
@@ -466,11 +176,15 @@ static void barrel(double x, double y, double z,
       glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
     }
 
-    //  Draw Barells
-    bowling_pin(0,0,0, 0.5,0.5,0.5 , 0);
+
+    alley(0,-10,0, 10,10,10 , 0, 0, floor_texture, arrow_texture);
+
+    //enable textures
+
 
     //  disbale lighting from here on
     glDisable(GL_LIGHTING);
+
 
     //  Draw axes
     glColor3f(1,1,1);
@@ -492,11 +206,24 @@ static void barrel(double x, double y, double z,
       glRasterPos3d(0.0,0.0,len);
       Print("Z");
     }
-    //  Display parameters
-    glWindowPos2i(10,10);
-    Print("Angle=%d,%d  Dim=%.1f FOV=%d Projection=%d",th,ph,dim,fov,mode);
-    glFlush();
-    glutSwapBuffers();
+
+      glWindowPos2i(5,5);
+      if(mode == 0)
+      {
+          Print("Projection Type: Perspective");
+          glWindowPos2i(5,25);
+          Print("Dimension: %.0f", dim);
+      }
+      else
+      {
+          Print("Projection Type: First Person");
+          glWindowPos2i(5,25);
+          Print("User Location: { %.3f, %.3f, %.3f }", xOffset, yOffset, zOffset);
+      }
+
+      //Render scene
+      glFlush();
+      glutSwapBuffers();
   }
 
   /*
@@ -542,11 +269,11 @@ static void barrel(double x, double y, double z,
     //  Reset view angle
     else if (ch == '0')
     {
-    th = ph = 0;
-    EX = 0;
-    EY = 0;
-    EZ = 2*dim;
-  }
+      th = ph = 0;
+      xOffset = 0;
+      yOffset = 0;
+      zOffset = 0;
+    }
     //  Toggle axes
     else if (ch == 'x' || ch == 'X')
     axes = 1-axes;
@@ -556,59 +283,43 @@ static void barrel(double x, double y, double z,
     //  Switch projection mode
     else if (ch == 'p' || ch == 'P')
     {
-    mode = (mode+1)%3;
-    th = ph = 0;
-    EX = 0;
-    EY = 0;
-    EZ = 2*dim;
+      mode = (mode+1)%3;
+      th = ph = 0;
+      xOffset = 0;
+      yOffset = 0;
+      zOffset = 2*dim;
     }
     //  Change field of view angle
     else if (ch == '-' && ch>1)
     fov--;
     else if (ch == '+' && ch<179)
     fov++;
-    //  Light elevation
-    else if (ch=='[')
-    ylight -= 0.1;
-    else if (ch==']')
-    ylight += 0.1;
-    //  Ambient level
-    else if (ch=='a' && ambient>0)
-    ambient -= 5;
-    else if (ch=='A' && ambient<100)
-    ambient += 5;
-    //  Diffuse level
-    else if (ch=='d' && diffuse>0)
-    diffuse -= 5;
-    else if (ch=='D' && diffuse<100)
-    diffuse += 5;
-    //  Specular level
-    else if (ch=='s' && specular>0)
-    specular -= 5;
-    else if (ch=='S' && specular<100)
-    specular += 5;
-    //  Emission level
-    else if (ch=='e' && emission>0)
-    emission -= 5;
-    else if (ch=='E' && emission<100)
-    emission += 5;
-    //  Shininess level
-    else if (ch=='n' && shininess>-1)
-    shininess -= 1;
-    else if (ch=='N' && shininess<7)
-    shininess += 1;
-      // Move forward in the scene
-    else if(ch == 'f'){
-      EX += AX*.1;
-      EZ += AZ*.1;
+    //FIRST PERSON NAVIGATION WITH WASD
+    else if(ch == 'w' || ch == 'W')
+    {
+        xOffset -= 2*Sin(th);
+        zOffset += 2*Cos(th);
+        checkOffsets();
     }
-    // Move backwards in the scene
-    else if(ch == 'v'){
-      EX -= AX*.1;
-      EZ -= AZ*.1;
+    else if(ch == 's' || ch == 'S')
+    {
+        xOffset += 2*Sin(th);
+        zOffset -= 2*Cos(th);
+        checkOffsets();
     }
-    //  Translate shininess power to value (-1 => 0)
-    shinyvec[0] = shininess<0 ? 0 : pow(2.0,shininess);
+    else if(ch == 'a' || ch == 'A')
+    {
+        xOffset -= 2*Sin(th-90);
+        zOffset += 2*Cos(th-90);
+        checkOffsets();
+    }
+    else if(ch == 'd' || ch == 'D')
+    {
+        xOffset += 2*Sin(th-90);
+        zOffset -= 2*Cos(th-90);
+        checkOffsets();
+    }
+
     //  Reproject
     Project(fov,asp,dim);
     //  Tell GLUT it is necessary to redisplay the scene
@@ -711,9 +422,13 @@ static void barrel(double x, double y, double z,
     glutMotionFunc(motionmouse);
     glutKeyboardFunc(key);
     // load textures
-    end = LoadTexBMP("end.bmp");
-    side = LoadTexBMP("side.bmp");
-    //  Pass control to GLUT so it can interact with the user
+    floor_texture = LoadTexBMP("floor.bmp");
+    arrow_texture = LoadTexBMP("arrows.bmp");
+    // int x, y;
+    // // unsigned char *ImageData = stbi_load("arrows4ch.bmp", &x, &y, NULL, 4);
+    // GLubyte *ImageData = stbi_load("arrows4ch.bmp", &x, &y, NULL, 4);
+    // arrow_texture = (GL_TxOffsetTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
+    // printf("%d" , arrow_texture );
     glutMainLoop();
     return 0;
   }
