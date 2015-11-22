@@ -68,6 +68,7 @@ unsigned int side = 0;// side texture
 unsigned int end = 0; // end texture
 unsigned int floor_texture = 0; // floor texture
 unsigned int arrow_texture = 0; // floor texture
+unsigned int mural_texture[4] = {0,0,0,0};
 
 double AX = 0; // x-coordinate of where the camera is looking
 double AY = 0; // y-coordinate of where the camera is looking
@@ -113,6 +114,55 @@ double mouse_rotation(double delta, double mid)
   return 180 * (delta / mid);
 }
 
+/*
+*  Draw vertex in polar coordinates with normal
+*/
+static void Vertex(double th,double ph)
+{
+  double x = Sin(th)*Cos(ph);
+  double y = Cos(th)*Cos(ph);
+  double z =         Sin(ph);
+  //  For a sphere at the origin, the position
+  //  and normal vectors are the same
+  glNormal3d(x,y,z);
+  glVertex3d(x,y,z);
+}
+
+static void ball(double x,double y,double z,double r)
+ {
+   int th,ph;
+   float emission = 0.0;
+   float yellow[] = {1.0,1.0,1.0,1.0};
+   float Emission[]  = {0.0,0.0,0.01*emission,1.0};
+   //  Save transformation
+   glPushMatrix();
+   //  Offset, scale and rotate
+   glTranslated(x,y,z);
+   glScaled(r,r,r);
+   //  White ball
+   glColor3f(1,1,1);
+   float shinyvec[1];
+   glMaterialfv(GL_FRONT,GL_SHININESS,shinyvec);
+   glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
+   glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
+   //  Bands of latitude
+   for (ph=-90;ph<90;ph+=inc)
+   {
+     glBegin(GL_QUAD_STRIP);
+     for (th=0;th<=360;th+=2*inc)
+     {
+       Vertex(th,ph);
+       Vertex(th,ph+inc);
+     }
+     glEnd();
+   }
+   //  Undo transofrmations
+   glPopMatrix();
+ }
+
+
+
+
   /*
   *  OpenGL (GLUT) calls this routine to display the scene
   */
@@ -155,15 +205,14 @@ double mouse_rotation(double delta, double mid)
       float Position[]  = {10*Cos(idle),10,10*Sin(idle),1};
       // printf("%f | %f | %f\n" , Position[0] , Position[1] , Position[2]    );
       //  Draw light position as ball (still no lighting here)
-      sphere(Position[0],Position[1],Position[2] , 1,1,1);
+      ball(Position[0],Position[1],Position[2] , 1);
       //  Enable lighting with normalization
       glEnable(GL_NORMALIZE);
       //  Enable lighting
       glEnable(GL_LIGHTING);
       //  Location of viewer for specular calculations
       glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER,local);
-      //  glColor sets ambient and diffuse color materials
-      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+
       glEnable(GL_COLOR_MATERIAL);
       //  Enable light 0
       glEnable(GL_LIGHT0);
@@ -174,16 +223,25 @@ double mouse_rotation(double delta, double mid)
       glLightfv(GL_LIGHT0,GL_POSITION,Position);
       glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
       glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
+      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
     }
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    mural(0,0,0, 10,10,10 , 0, 0, mural_texture[0]);
+    alley(0,0,0, 10,10,10 , 0, 0, floor_texture, arrow_texture);
+
+    bowling_pin(0,0,0,0.1,0.1,0.1,0,0);
 
 
-    alley(0,-10,0, 10,10,10 , 0, 0, floor_texture, arrow_texture);
 
     //enable textures
 
 
     //  disbale lighting from here on
-    glDisable(GL_LIGHTING);
+    if (light)
+    {
+      glDisable(GL_LIGHTING);
+    }
 
 
     //  Draw axes
@@ -319,6 +377,16 @@ double mouse_rotation(double delta, double mid)
         zOffset -= 2*Cos(th-90);
         checkOffsets();
     }
+    else if(ch == '[')
+    {
+        yOffset += 1;
+        checkOffsets();
+    }
+    else if(ch == ']')
+    {
+        yOffset -= 1;
+        checkOffsets();
+    }
 
     //  Reproject
     Project(fov,asp,dim);
@@ -424,11 +492,10 @@ double mouse_rotation(double delta, double mid)
     // load textures
     floor_texture = LoadTexBMP("floor.bmp");
     arrow_texture = LoadTexBMP("arrows.bmp");
-    // int x, y;
-    // // unsigned char *ImageData = stbi_load("arrows4ch.bmp", &x, &y, NULL, 4);
-    // GLubyte *ImageData = stbi_load("arrows4ch.bmp", &x, &y, NULL, 4);
-    // arrow_texture = (GL_TxOffsetTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
-    // printf("%d" , arrow_texture );
+    mural_texture[0] = LoadTexBMP("1.bmp");
+    mural_texture[1] = LoadTexBMP("2.bmp");
+    mural_texture[2] = LoadTexBMP("3.bmp");
+    mural_texture[3] = LoadTexBMP("4.bmp");
     glutMainLoop();
     return 0;
   }

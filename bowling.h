@@ -26,6 +26,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
 
 void alley(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture, unsigned int arrow_texture );
 
+void mural(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture );
+
 void sphere(double x, double y, double z, double xScale, double yScale, double zScale);
 
 void cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateY, double rotateZ, unsigned int texture);

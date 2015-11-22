@@ -15,11 +15,10 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   glScaled(xScale, yScale, zScale);
   int i;
   int k;
-  double f;
   double alphaheight = 0.0;
   double alphatilt = 0.0;
   double turning = 0.0;
-
+  double f = 0.0;
   glBegin(GL_TRIANGLE_FAN);
   glColor3f(1,1,1);
   glNormal3f( 0, -1, 0);
@@ -166,14 +165,13 @@ void alley(double x, double y, double z,
   double xScale, double yScale, double zScale,
   double rotateX, double rotateY, unsigned int floor_texture, unsigned int arrow_texture )
   {
-    int i;
+    int i, l;
     double k,j;
-    int resolution  = 12;
-    double fraction = 360 / resolution;
+    // int resolution  = 12;
+    // double fraction = 360 / resolution;
     double length = 12;
-    double slightlyabove = 0.001;
-    double midway, xp, zp, prevx;
-    double gutter = 0.25;
+    // double slightlyabove = 0.001;
+    // double midway, xp, zp, prevx;
 
     glPushMatrix();
     glTranslated(x, y,z);
@@ -182,71 +180,101 @@ void alley(double x, double y, double z,
     glScaled(xScale, yScale, zScale);
 
 
-    // gutter and seperator
-    xp = 1.0;
-
     glBegin(GL_QUAD_STRIP);
-    glColor3f(0.892,0.872,0.784);
-    for(i = 0; i < length ; i++)
+    glColor3f(0.6,0.6,0.6);
+    for(l = 0; l < 2 ; l++)
     {
+      for(i = 0; i < length ; i++)
+      {
+        k = l ==0 ? -0.2 : 1.2;
+        glBegin(GL_QUAD_STRIP);
+        glNormal3f( -1, 0, 0);
+        glVertex3f(l,0,i);
+        glVertex3f(l,0,i+1);
+        glVertex3f(l,-0.1,i);
+        glVertex3f(l,-0.1,i+1);
+        glEnd();
+        glBegin(GL_QUAD_STRIP);
+        glNormal3f( 0, 1, 0);
+        glVertex3f(l,-0.1,i);
+        glVertex3f(l,-0.1,i+1);
+        glVertex3f(k,-0.1,i);
+        glVertex3f(k,-0.1,i+1);
 
-      glNormal3f( -1, 0, 0);
-      glVertex3f(0,0,i);
-      glVertex3f(0,-0.1,i);
-      glVertex3f(0,0,i+1);
-      glVertex3f(0,-0.1,i+1);
-      //
-      glNormal3f( 0, 1, 0);
-      glVertex3f(0,-0.1,i);
-      glVertex3f(-0.2,-0.1,i);
-      glVertex3f(0,-0.1,i+1);
-      glVertex3f(-0.2,-0.1,i+1);
-      //
-      glNormal3f( 1, 0, 0);
-      glVertex3f(-0.2,0,i);
-      glVertex3f(-0.2,-0.1,i);
-      glVertex3f(-0.2,0,i+1);
-      glVertex3f(-0.2,-0.1,i+1);
+        glEnd();
+        glBegin(GL_QUAD_STRIP);
+        glNormal3f( 1, 0, 0);
+        glVertex3f(k,-0.1,i);
+        glVertex3f(k,-0.1,i+1);
+        glVertex3f(k,0,i);
+        glVertex3f(k,0,i+1);
+        glEnd();
 
-
+      }
     }
-    glEnd();
+
+    glColor3f(1,1,1);
     glEnable(GL_TEXTURE_2D);
+    glNormal3f( 0, 1, 0);
     for(i = 0; i < length ; i++)
     {
       k = (double)((double)i / length);
-      j = (double)((double)i / length);
+      j = (double)((double)(i+1) / length);
       glBindTexture(GL_TEXTURE_2D,floor_texture);
       glBegin(GL_QUAD_STRIP);
       glNormal3f( 0, 1, 0);
-      glTexCoord2f(0,1-k); glVertex3f(0,0,i);
-      glTexCoord2f(1,1-k); glVertex3f(1,0,i);
-      glTexCoord2f(0,1-j); glVertex3f(0,0,i+1);
-      glTexCoord2f(1,1-j); glVertex3f(1,0,i+1);
+      glTexCoord2f(0,k); glVertex3f(0,0,i);
+      glTexCoord2f(1,k); glVertex3f(1,0,i);
+      glTexCoord2f(0,j); glVertex3f(0,0,i+1);
+      glTexCoord2f(1,j); glVertex3f(1,0,i+1);
       glEnd();
-    }
-    for(i = 0; i < 2 ; i++)
-    {
-      midway = (length/2.0)*i;
-      glBindTexture(GL_TEXTURE_2D,arrow_texture);
-      //  Enable blending
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA,GL_ONE);
-      glColor4f(1,0,0,1.0);
-      glBegin(GL_QUAD_STRIP);
-      glNormal3f( 0, 1, 0);
-      glTexCoord2f(0,0); glVertex3f(0,slightlyabove,midway);
-      glTexCoord2f(1,0); glVertex3f(1,slightlyabove,midway);
-      glTexCoord2f(0,1); glVertex3f(0,slightlyabove,midway+1);
-      glTexCoord2f(1,1); glVertex3f(1,slightlyabove,midway+1);
-      glEnd();
-      glDisable(GL_BLEND);
     }
     glDisable(GL_TEXTURE_2D);
 
 
     glPopMatrix();
   }
+
+  void mural(double x, double y, double z,
+    double xScale, double yScale, double zScale,
+    double rotateX, double rotateY, unsigned int mural_texture )
+    {
+      int length = 12;
+      float shinyvec[1];
+      float emission = 0.0;
+      float white[] = {1,1,1,1};
+      float Emission[]  = {0.0,0.0,0.01*emission,1.0};
+
+      glMaterialfv(GL_FRONT,GL_SHININESS,shinyvec);
+      glMaterialfv(GL_FRONT,GL_SPECULAR,white);
+      glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
+
+      glPushMatrix();
+      glTranslated(x, y,z);
+      glRotated(rotateY, 0,1,0);
+      glRotated(rotateX, 1,0,0);
+      glScaled(xScale, yScale, zScale);
+
+      glColor3f(1,1,1);
+
+
+
+      glEnable(GL_TEXTURE_2D);
+      glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+      glBindTexture(GL_TEXTURE_2D,mural_texture);
+      glBegin(GL_QUAD_STRIP);
+      glColor3f(0.6,0.6,0.6);
+      glNormal3f( 0, 0.8, -0.2);
+      glTexCoord2f(0,0);  glVertex3f(2,1,length);
+      glTexCoord2f(1,0);  glVertex3f(0,1,length);
+      glTexCoord2f(1,1);  glVertex3f(0,2,length-0.2);
+      glTexCoord2f(0,1);  glVertex3f(2,2,length-0.2);
+      glEnd();
+      glDisable(GL_TEXTURE_2D);
+
+
+      glPopMatrix();
+    }
 
 
   /*  Make a cube of unit length. Rotate, scale, and translate based on
