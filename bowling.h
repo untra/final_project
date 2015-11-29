@@ -24,9 +24,23 @@ extern "C" {
 
 void bowling_pin(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY);
 
-void alley(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture, unsigned int arrow_texture );
+void alley(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture);
 
 void mural(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture );
+
+void divider(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
+
+void ball_return_body(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
+
+void cap(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
+
+void floor_panel(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture );
+
+void wall(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture );
+
+void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture, unsigned int floor_texture);
+
+void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY);
 
 void sphere(double x, double y, double z, double xScale, double yScale, double zScale);
 

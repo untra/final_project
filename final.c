@@ -44,8 +44,8 @@ double dim=50.0;
 
 //first person location
 double xOffset = 0;
-double yOffset = 0;
-double zOffset = -60;
+double yOffset = 2.0;
+double zOffset = -60.0;
 
 
 int axes=0;       //  Display axes
@@ -69,6 +69,7 @@ unsigned int end = 0; // end texture
 unsigned int floor_texture = 0; // floor texture
 unsigned int arrow_texture = 0; // floor texture
 unsigned int mural_texture[4] = {0,0,0,0};
+unsigned int wall_texture = 0; // wall texture
 
 double AX = 0; // x-coordinate of where the camera is looking
 double AY = 0; // y-coordinate of where the camera is looking
@@ -99,10 +100,10 @@ void Print(const char* format , ...)
 
 void checkOffsets()
 {
-    if(xOffset > 2000)
-        xOffset = 2000;
-    else if(xOffset < -2000)
-        xOffset = -2000;
+    if(xOffset > 32)
+        xOffset = 32;
+    else if(xOffset < -108)
+        xOffset = -108;
     if(zOffset > 2000)
         zOffset = 2000;
     else if(zOffset < -2000)
@@ -227,10 +228,25 @@ static void ball(double x,double y,double z,double r)
     }
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-    mural(0,0,0, 10,10,10 , 0, 0, mural_texture[0]);
-    alley(0,0,0, 10,10,10 , 0, 0, floor_texture, arrow_texture);
 
-    bowling_pin(0,0,0,0.1,0.1,0.1,0,0);
+    wall(33.5,0,-30,10,10,10,0,0,wall_texture);
+    wall(33.5,0,-60,10,10,10,0,0,wall_texture);
+    wall(33.5,0,0,10,10,10,0,0,wall_texture);
+    wall(33.5,0,30,10,10,10,0,0,wall_texture);
+    wall(33.5,0,60,10,10,10,0,0,wall_texture);
+    wall(33.5,0,90,10,10,10,0,0,wall_texture);
+    double_lane(0,0,0,1,1,1,0,0,mural_texture[0],floor_texture);
+    double_lane(-36,0,0,1,1,1,0,0,mural_texture[1],floor_texture);
+    double_lane(-72,0,0,1,1,1,0,0,mural_texture[2],floor_texture);
+    double_lane(-108,0,0,1,1,1,0,0,mural_texture[3],floor_texture);
+    wall(-110.5,0,0,10,10,10,0,0,wall_texture);
+    wall(-110.5,0,30,10,10,10,0,0,wall_texture);
+    wall(-110.5,0,60,10,10,10,0,0,wall_texture);
+    wall(-110.5,0,90,10,10,10,0,0,wall_texture);
+    wall(-110.5,0,-60,10,10,10,0,0,wall_texture);
+    wall(-110.5,0,-30,10,10,10,0,0,wall_texture);
+
+
 
 
 
@@ -329,8 +345,8 @@ static void ball(double x,double y,double z,double r)
     {
       th = ph = 0;
       xOffset = 0;
-      yOffset = 0;
-      zOffset = 0;
+      yOffset = 2.0;
+      zOffset = -60.0;
     }
     //  Toggle axes
     else if (ch == 'x' || ch == 'X')
@@ -496,6 +512,7 @@ static void ball(double x,double y,double z,double r)
     mural_texture[1] = LoadTexBMP("2.bmp");
     mural_texture[2] = LoadTexBMP("3.bmp");
     mural_texture[3] = LoadTexBMP("4.bmp");
+    wall_texture = LoadTexBMP("wall.bmp");
     glutMainLoop();
     return 0;
   }
