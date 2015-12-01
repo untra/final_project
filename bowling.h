@@ -38,9 +38,9 @@ void floor_panel(double x, double y, double z, double xScale, double yScale, dou
 
 void wall(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture );
 
-void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture, unsigned int floor_texture);
+void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion, unsigned int mural_texture, unsigned int floor_texture);
 
-void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY);
+void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion);
 
 void sphere(double x, double y, double z, double xScale, double yScale, double zScale);
 

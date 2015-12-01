@@ -31,6 +31,10 @@
 #include <GL/glut.h>
 #endif
 
+int rollmax           = 600;
+int explosion_limit   = 60;
+int explode_at        = 540;
+
 //Azimuth
 int th=0;
 //Elevation
@@ -47,7 +51,8 @@ double xOffset = 0;
 double yOffset = 2.0;
 double zOffset = -60.0;
 
-
+int roll = 600;
+double explosion = 0.0;
 int axes=0;       //  Display axes
 double idle = 0.0;
 int window_width = 600;
@@ -142,7 +147,7 @@ static void ball(double x,double y,double z,double r)
    glScaled(r,r,r);
    //  White ball
    glColor3f(1,1,1);
-   float shinyvec[1];
+   float shinyvec[1] = {4};
    glMaterialfv(GL_FRONT,GL_SHININESS,shinyvec);
    glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
    glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
@@ -198,9 +203,9 @@ static void ball(double x,double y,double z,double r)
     if (light)
     {
       //  Translate intensity to color vectors
-      float Ambient[]   = {0.3,0.3,0.3,1.0};
-      float Diffuse[]   = {1,1,1,1};
-      float Specular[]  = {1,1,0,1};
+      float Ambient[]   = {0.1,0.1,0.1,1.0};
+      float Diffuse[]   = {0.3,0.3,0.3,1};
+      float Specular[]  = {0.6,0.6,0.6,1};
       float white[]     = {1,1,1,1};
       //  Light direction
       float Position[]  = {10*Cos(idle),10,10*Sin(idle),1};
@@ -235,10 +240,10 @@ static void ball(double x,double y,double z,double r)
     wall(33.5,0,30,10,10,10,0,0,wall_texture);
     wall(33.5,0,60,10,10,10,0,0,wall_texture);
     wall(33.5,0,90,10,10,10,0,0,wall_texture);
-    double_lane(0,0,0,1,1,1,0,0,mural_texture[0],floor_texture);
-    double_lane(-36,0,0,1,1,1,0,0,mural_texture[1],floor_texture);
-    double_lane(-72,0,0,1,1,1,0,0,mural_texture[2],floor_texture);
-    double_lane(-108,0,0,1,1,1,0,0,mural_texture[3],floor_texture);
+    double_lane(0,0,0,1,1,1,0,explosion,mural_texture[0],floor_texture);
+    double_lane(-36,0,0,1,1,1,0,explosion,mural_texture[1],floor_texture);
+    double_lane(-72,0,0,1,1,1,0,explosion,mural_texture[2],floor_texture);
+    double_lane(-108,0,0,1,1,1,0,explosion,mural_texture[3],floor_texture);
     wall(-110.5,0,0,10,10,10,0,0,wall_texture);
     wall(-110.5,0,30,10,10,10,0,0,wall_texture);
     wall(-110.5,0,60,10,10,10,0,0,wall_texture);
@@ -368,6 +373,14 @@ static void ball(double x,double y,double z,double r)
     fov--;
     else if (ch == '+' && ch<179)
     fov++;
+    else if (ch == 'r')
+    {
+      roll = 0;
+      xOffset = -31.0;
+      yOffset = 4.0;
+      zOffset = 0.0;
+      th = ph = 0;
+    }
     //FIRST PERSON NAVIGATION WITH WASD
     else if(ch == 'w' || ch == 'W')
     {
@@ -482,6 +495,27 @@ static void ball(double x,double y,double z,double r)
   {
     double t = glutGet(GLUT_ELAPSED_TIME)/1000.0;
     idle = fmod(90*t,360);
+    //If rolling
+    if(roll < rollmax)
+    {
+      roll++;
+      ph -= ((4.0*360) / rollmax) ;
+      ph %= 360;
+      zOffset += (120.0 / rollmax);
+      yOffset = 3 - 1.5*Sin(ph);
+      explosion = roll > explode_at ? (360.0*((1.0*roll) - explode_at)) / explosion_limit : 0.0 ;
+    }
+    if(roll == rollmax)
+    {
+      ph = 0;
+      zOffset = 0;
+      yOffset = 3;
+      xOffset = -31.0;
+      explosion = 0.0;
+      roll++;
+    }
+
+
     glutPostRedisplay();
   }
 

@@ -20,6 +20,8 @@
 
 * 'l' toggles lighting
 
+* PRESS R to roll the ball!
+
 * a/A decrease/increase ambient light
 
 * d/D decrease/increase diffuse light

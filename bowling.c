@@ -359,6 +359,35 @@ void divider(double x, double y, double z,
       glVertex3f(0.25-0.02,platform,0.5);
       glVertex3f(0.25-0.02,platform,0.5+1);
       glEnd();
+      //downsplit
+      glBegin(GL_QUAD_STRIP);
+      glColor3f(0.0,0.0,0.0);
+      glNormal3f( 0, 1, 0);
+      glVertex3f(0.25+0.02,platform,1.45);
+      glVertex3f(0.25+0.02,platform,1.5);
+      glVertex3f(0.25, 0           ,1.35);
+      glVertex3f(0.25, 0           ,1.4);
+      glVertex3f(0.25-0.02,platform,1.45);
+      glVertex3f(0.25-0.02,platform,1.5);
+      glVertex3f(0.25,      0      ,1.35);
+      glVertex3f(0.25,      0      ,1.4);
+      glVertex3f(0.25+0.02,platform,1.45);
+      glVertex3f(0.25+0.02,platform,1.5);
+      glEnd();
+      //downsplit faces
+      glBegin(GL_TRIANGLES);
+      glColor3f(0.0,0.0,0.0);
+      //front
+      glNormal3f( 0, -0.5, -0.95);
+      glVertex3f(0.25-0.02,platform,1.5);
+      glVertex3f(0.25+0.02,platform,1.5);
+      glVertex3f(0.25,      0      ,1.4);
+      //back
+      glNormal3f( 0, 0.5, 0.95);
+      glVertex3f(0.25-0.02,platform,1.45);
+      glVertex3f(0.25+0.02,platform,1.45);
+      glVertex3f(0.25,      0      ,1.35);
+      glEnd();
       //end
       glBegin(GL_QUADS);
       glColor3f(0.0,0.0,0.0);
@@ -617,34 +646,41 @@ void alley(double x, double y, double z,
     glPopMatrix();
   }
 
-  void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY)
+  // takes explosion
+  void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion)
   {
+    double front  = explosion;
+    double twins  = explosion > 20 ? explosion - 20 : 0;
+    double thirds = explosion > 40 ? explosion - 40 : 0;
+    double back   = explosion > 60 ? explosion - 60 : 0;
+
     // head
-    bowling_pin(x+5,y+0,z+111,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
+    bowling_pin(x+5+(front/60),y+(front/120),z+111+(front/30),0.25*xScale,0.25*yScale,0.25*zScale,front,0);
     // twins
-    bowling_pin(x+4,y+0,z+112.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+6,y+0,z+112.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
+    bowling_pin(x+4-(twins/80),y+(twins/120),z+112.5+(twins/20),0.25*xScale,0.25*yScale,0.25*zScale,twins,0);
+    bowling_pin(x+6+(twins/80),y+(twins/120),z+112.5+(twins/20),0.25*xScale,0.25*yScale,0.25*zScale,twins,0);
     //thirds
-    bowling_pin(x+3,y+0,z+114,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+5,y+0,z+114,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+7,y+0,z+114,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
+    bowling_pin(x+3+(thirds/100),y+(thirds/120),z+114+(thirds/15),0.25*xScale,0.25*yScale,0.25*zScale,thirds,0);
+    bowling_pin(x+5-(thirds/120),y+(thirds/120),z+114+(thirds/15),0.25*xScale,0.25*yScale,0.25*zScale,thirds,0);
+    bowling_pin(x+7-(thirds/100),y+(thirds/120),z+114+(thirds/15),0.25*xScale,0.25*yScale,0.25*zScale,thirds,0);
     //back
-    bowling_pin(x+2,y+0,z+115.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+4,y+0,z+115.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+6,y+0,z+115.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
-    bowling_pin(x+8,y+0,z+115.5,0.25*xScale,0.25*yScale,0.25*zScale,0,0);
+    bowling_pin(x+2-(back/120),y+(back/120),z+115.5+(back/12),0.25*xScale,0.25*yScale,0.25*zScale,back,0);
+    bowling_pin(x+4+(back/120),y+(back/120),z+115.5+(back/12),0.25*xScale,0.25*yScale,0.25*zScale,back,0);
+    bowling_pin(x+6-(back/120),y+(back/120),z+115.5+(back/12),0.25*xScale,0.25*yScale,0.25*zScale,back,0);
+    bowling_pin(x+8+(back/120),y+(back/120),z+115.5+(back/12),0.25*xScale,0.25*yScale,0.25*zScale,back,0);
   }
 
   void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture, unsigned int floor_texture)
   {
     mural(x-2,y,z-10, 12*xScale,10*yScale,10*zScale , 0, 0, mural_texture);
-    alley(x,y,z, 10*xScale,10*yScale,10*zScale , 0, 0, floor_texture);
-    pins(x,y,z,1,1,1,0,0);
+    alley(x,y,z, 10*xScale,10*yScale,9.75*zScale , 0, 0, floor_texture);
+    pins(x,y,z,1,1,1,0,rotateY);
     divider(x+12.5,y,z, 4*xScale,1*yScale,10*zScale , 0, 0);
     cap(x+16.5,y,z,4*xScale,1*yScale,10*zScale,0,180);
     ball_return_body(x+17,y,z-15, 10*xScale,10*yScale,10*zScale , 0, 180);
-    alley(x+19,y,z, 10*xScale,10*yScale,10*zScale , 0, 0, floor_texture);
-    pins(x+19,y,z,1,1,1,0,0);
+    cap(x+16,y+3,z-30,3*xScale,0.5*yScale,5*zScale,0,180);
+    alley(x+19,y,z, 10*xScale,10*yScale,9.75*zScale , 0, 0, floor_texture);
+    pins(x+19,y,z,1,1,1,0,rotateY);
     divider(x+31.5,y,z, 2*xScale,1*yScale,10*zScale , 0, 0);
     cap(x+33.5,y,z,2*xScale,1*yScale,5*zScale,0,180);
     floor_panel(x-2.5,y,z-10,12*xScale,10*yScale,10*zScale,0,0, floor_texture);
