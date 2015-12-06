@@ -42,7 +42,7 @@ int ph=0;
 
 //Projection variables
 int mode = 1;
-int fov=55;
+int fov=60;
 double asp=1;
 double dim=50.0;
 
@@ -52,9 +52,8 @@ double yOffset = 2.0;
 double zOffset = -60.0;
 
 int roll = 600;
-double explosion = 0.0;
 int axes=0;       //  Display axes
-double idle = 0.0;
+double idle[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
 int window_width = 600;
 int window_height = 600;
 int left_click_down = 0;
@@ -75,6 +74,9 @@ unsigned int floor_texture = 0; // floor texture
 unsigned int arrow_texture = 0; // floor texture
 unsigned int mural_texture[4] = {0,0,0,0};
 unsigned int wall_texture = 0; // wall texture
+unsigned int ball_texture = 0; // bowling ball texture
+unsigned int cieling_texture = 0; // bowling ball texture
+unsigned int duct_texture = 0;
 
 double AX = 0; // x-coordinate of where the camera is looking
 double AY = 0; // y-coordinate of where the camera is looking
@@ -83,6 +85,24 @@ double AZ = 0; // z-coordinate of where the camera is looking
 double UX = 0; // x-coordinate of the up vector
 double UY = 1; // y-coordinate of the up vector
 double UZ = 0; // z-coordinate of the up vector
+
+int pole_position[8] = {0,0,0,0,0,0,0,0};
+double explosion[8] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+double reset[8] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+double bowling_ball_z[8] = {-25.0,-25.0,-25.0,-25.0,-25.0,-25.0,-25.0,-25.0};
+int ball_ph[8] = {0,0,0,0,0,0,0,0};
+int pin_x[8] = {19, 0, -17, -36, -53, -72, -89, -108};
+float colors[8][4] = {
+{1.0, 0.1, 0.6 , 1.0},
+{0.1, 1.0, 0.6 , 1.0},
+{0.8, 1.0, 1.0 , 1.0},
+{0.4, 0.7, 1.0 , 1.0},
+{0.3, 1.0, 0.3 , 1.0},
+{0.2, 0.3, 0.6 , 1.0},
+{0.7, 0.4, 0.5 , 1.0},
+{1.0, 1.0, 0.3 , 1.0}
+};
+
 
 /*
 *  Convenience routine to output raster text
@@ -105,14 +125,18 @@ void Print(const char* format , ...)
 
 void checkOffsets()
 {
-    if(xOffset > 32)
-        xOffset = 32;
-    else if(xOffset < -108)
-        xOffset = -108;
-    if(zOffset > 2000)
-        zOffset = 2000;
-    else if(zOffset < -2000)
-        zOffset = -2000;
+    if(xOffset > 29.5)
+        xOffset = 29.5;
+    else if(xOffset < -105.5)
+        xOffset = -105.5;
+    if(zOffset > 120)
+        zOffset = 120;
+    else if(zOffset < -60)
+        zOffset = -60;
+    if(yOffset > 28)
+        yOffset = 28;
+    else if(yOffset < 2)
+        yOffset = 2;
 }
 
 double mouse_rotation(double delta, double mid)
@@ -134,22 +158,20 @@ static void Vertex(double th,double ph)
   glVertex3d(x,y,z);
 }
 
-static void ball(double x,double y,double z,double r)
+static void ball(double x,double y,double z,double r, float color[])
  {
    int th,ph;
-   float emission = 0.0;
-   float yellow[] = {1.0,1.0,1.0,1.0};
-   float Emission[]  = {0.0,0.0,0.01*emission,1.0};
+   float Emission[]  = {color[0],color[1],color[2],1.0};
    //  Save transformation
    glPushMatrix();
    //  Offset, scale and rotate
    glTranslated(x,y,z);
    glScaled(r,r,r);
    //  White ball
-   glColor3f(1,1,1);
+   glColor3f(color[0],color[1],color[2]);
    float shinyvec[1] = {4};
    glMaterialfv(GL_FRONT,GL_SHININESS,shinyvec);
-   glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
+   glMaterialfv(GL_FRONT,GL_SPECULAR,color);
    glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
    //  Bands of latitude
    for (ph=-90;ph<90;ph+=inc)
@@ -166,7 +188,38 @@ static void ball(double x,double y,double z,double r)
    glPopMatrix();
  }
 
+ double bowling_ball_x(int lane)
+ {
+   int shift = lane % 2;
+   if( bowling_ball_z[lane] > -20.0)
+   {
+     return -36.0 * (lane/2) + 24 + (!shift? 0: - 19.0);
+   }
+   else
+   {
+     return -36.0 * (lane/2) + 15 + (!shift? 0.25: -1.25);
+   }
+ }
 
+ double bowling_ball_y(int lane)
+ {
+   if( bowling_ball_z[lane] > -5.0)
+   {
+     return 1;
+   }
+   if(bowling_ball_z[lane] < -9 && bowling_ball_z[lane] > -11)
+   {
+     return -3.0;
+   }
+   if( bowling_ball_z[lane] > 110)
+   {
+     return -0.5*(bowling_ball_z[lane]-110);
+   }
+   else
+   {
+     return 3.7;
+   }
+ }
 
 
   /*
@@ -174,6 +227,8 @@ static void ball(double x,double y,double z,double r)
   */
   void display()
   {
+    int i;
+    double fall;
     const double len=10.0;  //  Length of axes
     //  Erase the window and the depth buffer
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -205,55 +260,129 @@ static void ball(double x,double y,double z,double r)
       //  Translate intensity to color vectors
       float Ambient[]   = {0.1,0.1,0.1,1.0};
       float Diffuse[]   = {0.3,0.3,0.3,1};
-      float Specular[]  = {0.6,0.6,0.6,1};
+      float Specular[]  = {0.2,0.2,0.2,1};
       float white[]     = {1,1,1,1};
+      // float red[]     = {1,0,0,1};
+      // float green[]     = {0,1,0,1};
+      // float blue[]     = {0,0,1,1};
       //  Light direction
-      float Position[]  = {10*Cos(idle),10,10*Sin(idle),1};
+      float Position[6][4]  = {
+        {68*Cos(idle[0])-38,30,20 , 1},
+        {68*Cos(idle[1])-38,31,40 , 1},
+        {68*Cos(idle[2])-38,32,60 , 1},
+        {68*Cos(idle[3])-38,33,80 , 1},
+        {68*Cos(idle[4])-38,34,100 , 1},
+        {bowling_ball_x(4),bowling_ball_y(4),bowling_ball_z[4] , 1},
+      };
       // printf("%f | %f | %f\n" , Position[0] , Position[1] , Position[2]    );
       //  Draw light position as ball (still no lighting here)
-      ball(Position[0],Position[1],Position[2] , 1);
-      //  Enable lighting with normalization
-      glEnable(GL_NORMALIZE);
+      ball(Position[0][0],Position[0][1],Position[0][2],1,white);
+      // ball(Position[1][0],Position[1][1],Position[1][2],1,red);
+      // ball(Position[2][0],Position[2][1],Position[2][2],1,green);
+      // ball(Position[3][0],Position[3][1],Position[3][2],1,blue);
+      // ball(Position[4][0],Position[4][1],Position[4][2],1,white);
+
       //  Enable lighting
       glEnable(GL_LIGHTING);
+      //  Enable lighting with normalization
+      glEnable(GL_NORMALIZE);
+
       //  Location of viewer for specular calculations
       glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER,local);
 
+      glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
       glEnable(GL_COLOR_MATERIAL);
       //  Enable light 0
-      glEnable(GL_LIGHT0);
+
       //  Set ambient, diffuse, specular components and position of light 0
+      glEnable(GL_LIGHT0);
       glLightfv(GL_LIGHT0,GL_AMBIENT ,Ambient);
       glLightfv(GL_LIGHT0,GL_DIFFUSE ,Diffuse);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Specular);
-      glLightfv(GL_LIGHT0,GL_POSITION,Position);
+      glLightfv(GL_LIGHT0,GL_POSITION,Position[0]);
       glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glEnable(GL_LIGHT1);
+      // glLightfv(GL_LIGHT1,GL_AMBIENT ,Ambient);
+      // glLightfv(GL_LIGHT1,GL_DIFFUSE ,Diffuse);
+      // glLightfv(GL_LIGHT1,GL_SPECULAR,Specular);
+      // glLightfv(GL_LIGHT1,GL_POSITION,Position[1]);
       glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
       glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      //  Set ambient, diffuse, specular components and position of light 1
+
+      // glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,red);
+      // glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      // //  Set ambient, diffuse, specular components and position of light 2
+      // glEnable(GL_LIGHT2);
+      // glLightfv(GL_LIGHT2,GL_AMBIENT ,Ambient);
+      // glLightfv(GL_LIGHT2,GL_DIFFUSE ,Diffuse);
+      // glLightfv(GL_LIGHT2,GL_SPECULAR,Specular);
+      // glLightfv(GL_LIGHT2,GL_POSITION,Position[2]);
+      // glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,green);
+      // glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      // //  Set ambient, diffuse, specular components and position of light 3
+      // glEnable(GL_LIGHT3);
+      // glLightfv(GL_LIGHT3,GL_AMBIENT ,Ambient);
+      // glLightfv(GL_LIGHT3,GL_DIFFUSE ,Diffuse);
+      // glLightfv(GL_LIGHT3,GL_SPECULAR,Specular);
+      // glLightfv(GL_LIGHT3,GL_POSITION,Position[3]);
+      // glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,blue);
+      // glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      // //  Set ambient, diffuse, specular components and position of light 4
+      // glEnable(GL_LIGHT4);
+      // glLightfv(GL_LIGHT4,GL_AMBIENT ,Ambient);
+      // glLightfv(GL_LIGHT4,GL_DIFFUSE ,Diffuse);
+      // glLightfv(GL_LIGHT4,GL_SPECULAR,Specular);
+      // glLightfv(GL_LIGHT4,GL_POSITION,Position[4]);
+      // glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
+      // glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+      // //  Set ambient, diffuse, specular components and position of light 5
+      // glEnable(GL_LIGHT5);
+      // glLightfv(GL_LIGHT5,GL_AMBIENT ,Ambient);
+      // glLightfv(GL_LIGHT5,GL_DIFFUSE ,Diffuse);
+      // glLightfv(GL_LIGHT5,GL_SPECULAR,Specular);
+      // glLightfv(GL_LIGHT5,GL_POSITION,Position[5]);
+      // glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
+      // glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,colors[4]);
+      // glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
     }
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 
-    wall(33.5,0,-30,10,10,10,0,0,wall_texture);
-    wall(33.5,0,-60,10,10,10,0,0,wall_texture);
-    wall(33.5,0,0,10,10,10,0,0,wall_texture);
-    wall(33.5,0,30,10,10,10,0,0,wall_texture);
-    wall(33.5,0,60,10,10,10,0,0,wall_texture);
-    wall(33.5,0,90,10,10,10,0,0,wall_texture);
-    double_lane(0,0,0,1,1,1,0,explosion,mural_texture[0],floor_texture);
-    double_lane(-36,0,0,1,1,1,0,explosion,mural_texture[1],floor_texture);
-    double_lane(-72,0,0,1,1,1,0,explosion,mural_texture[2],floor_texture);
-    double_lane(-108,0,0,1,1,1,0,explosion,mural_texture[3],floor_texture);
-    wall(-110.5,0,0,10,10,10,0,0,wall_texture);
-    wall(-110.5,0,30,10,10,10,0,0,wall_texture);
-    wall(-110.5,0,60,10,10,10,0,0,wall_texture);
-    wall(-110.5,0,90,10,10,10,0,0,wall_texture);
-    wall(-110.5,0,-60,10,10,10,0,0,wall_texture);
-    wall(-110.5,0,-30,10,10,10,0,0,wall_texture);
-
-
-
-
+    wall(33.5,0,-30,10,12,10,0,180,wall_texture);
+    wall(33.5,0,0,10,12,10,0,180,wall_texture);
+    wall(33.5,0,30,10,12,10,0,180,wall_texture);
+    wall(33.5,0,60,10,12,10,0,180,wall_texture);
+    wall(33.5,0,90,10,12,10,0,180,wall_texture);
+    wall(33.5,0,120,10,12,10,0,180,wall_texture);
+    mural(-2,0,-10, 12,12,10 , 0, 0, mural_texture[0], light);
+    mural(-38,0,-10, 12,12,10 , 0, 0, mural_texture[1], light);
+    mural(-74,0,-10, 12,12,10 , 0, 0, mural_texture[2], light);
+    mural(-110,0,-10, 12,12,10 , 0, 0, mural_texture[3], light);
+    for(i = 0 ; i < 8 ; i++)
+    {
+      fall = explosion[i] > 180 ? (double)explosion[i]/180.0 : 0;
+      fall = fall*fall;
+      pins(pin_x[i],reset[i] - fall,0,1,1,1,0,explosion[i]);
+    }
+    double_lane(0,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
+    double_lane(-36,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
+    double_lane(-72,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
+    double_lane(-108,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
+    wall(-110.5,0,-60,10,12,10,0,0,wall_texture);
+    wall(-110.5,0,-30,10,12,10,0,0,wall_texture);
+    wall(-110.5,0,0,10,12,10,0,0,wall_texture);
+    wall(-110.5,0,30,10,12,10,0,0,wall_texture);
+    wall(-110.5,0,60,10,12,10,0,0,wall_texture);
+    wall(-110.5,0,90,10,12,10,0,0,wall_texture);
+    for(i = 0 ; i < 8 ; i++)
+    {
+      bowling_ball(bowling_ball_x(i),bowling_ball_y(i),bowling_ball_z[i],1,1,1,ball_ph[i],ball_texture, colors[i]);
+    }
 
     //enable textures
 
@@ -263,8 +392,6 @@ static void ball(double x,double y,double z,double r)
     {
       glDisable(GL_LIGHTING);
     }
-
-
     //  Draw axes
     glColor3f(1,1,1);
     if (axes)
@@ -337,6 +464,18 @@ static void ball(double x,double y,double z,double r)
     glutPostRedisplay();
   }
 
+  void gobowl(int lane)
+  {
+    if(bowling_ball_z[lane] > -28.0)
+    {
+      return;
+    }
+    else
+    {
+      bowling_ball_z[lane] = -2.0;
+    }
+  }
+
   /*
   *  GLUT calls this routine when a key is pressed
   */
@@ -352,6 +491,38 @@ static void ball(double x,double y,double z,double r)
       xOffset = 0;
       yOffset = 2.0;
       zOffset = -60.0;
+    }
+    else if (ch == '1')
+    {
+      gobowl(0);
+    }
+    else if (ch == '2')
+    {
+      gobowl(1);
+    }
+    else if (ch == '3')
+    {
+      gobowl(2);
+    }
+    else if (ch == '4')
+    {
+      gobowl(3);
+    }
+    else if (ch == '5')
+    {
+      gobowl(4);
+    }
+    else if (ch == '6')
+    {
+      gobowl(5);
+    }
+    else if (ch == '7')
+    {
+      gobowl(6);
+    }
+    else if (ch == '8')
+    {
+      gobowl(7);
     }
     //  Toggle axes
     else if (ch == 'x' || ch == 'X')
@@ -379,7 +550,8 @@ static void ball(double x,double y,double z,double r)
       xOffset = -31.0;
       yOffset = 4.0;
       zOffset = 0.0;
-      th = ph = 0;
+      th = 0;
+      ph  = 180;
     }
     //FIRST PERSON NAVIGATION WITH WASD
     else if(ch == 'w' || ch == 'W')
@@ -488,36 +660,99 @@ static void ball(double x,double y,double z,double r)
     Project(fov,asp,dim);
   }
 
+  void explode_and_reset(int lane)
+  {
+    double explosion_change = 12.0;
+    if (explosion[lane] > 0.1)
+    {
+      if(explosion[lane] < 360.0)
+      {
+        explosion[lane] += explosion_change;
+      }
+      else
+      {
+        explosion[lane] = 0.0;
+        reset[lane] = 30.0;
+      }
+    }
+    if(reset[lane] > 0.0)
+    {
+      reset[lane] -= 0.1;
+    }
+  }
+
+  void roll_dat_ball(int lane)
+  {
+    if(bowling_ball_z[lane] > -3.0)
+    {
+      bowling_ball_z[lane] += 0.8;
+      ball_ph[lane] += 32;
+      ball_ph[lane] %= 360;
+    }
+    if(bowling_ball_z[lane] > 105.0)
+    {
+      explosion[lane] += 1.0;
+    }
+    if(bowling_ball_z[lane] > 110.0)
+    {
+      bowling_ball_z[lane] = -10.0;
+    }
+    if(bowling_ball_z[lane] < -9 && bowling_ball_z[lane] > -11)
+    {
+      if(reset[lane] < 1.0 && explosion[lane] < 0.1)
+      {
+        bowling_ball_z[lane] = -20;
+      }
+    }
+    if(bowling_ball_z[lane] < -19.5 && bowling_ball_z[lane] > -28.9)
+    {
+      bowling_ball_z[lane] -= 0.3;
+      ball_ph[lane] -= 12;
+      ball_ph[lane] %= 360;
+    }
+  }
+
   /*
   *  GLUT calls this toutine when there is nothing else to do
   */
   void idlefunc()
   {
     double t = glutGet(GLUT_ELAPSED_TIME)/1000.0;
-    idle = fmod(90*t,360);
+    int change = 2.0;
+    int lane;
+    idle[0] = fmod(90*t,360);
+    idle[1] = fmod(45*t,360);
+    idle[2] = fmod(30*t,360);
+    idle[3] = fmod(22.5*t,360);
+    idle[4] = fmod(18*t,360);
+    idle[5] = fmod(15*t,360);
     //If rolling
     if(roll < rollmax)
     {
-      roll++;
-      ph -= ((4.0*360) / rollmax) ;
+      roll += 1*change;
+      ph -= (((6.0*change)*360) / rollmax) ;
       ph %= 360;
-      zOffset += (120.0 / rollmax);
+      zOffset += ((change*120.0) / rollmax);
       yOffset = 3 - 1.5*Sin(ph);
-      explosion = roll > explode_at ? (360.0*((1.0*roll) - explode_at)) / explosion_limit : 0.0 ;
+      explosion[3] += zOffset > 105.0 ? 1.0 : 0.0 ;
+      if(zOffset >= 120.0)
+      {
+        ph = 0;
+        zOffset = 0;
+        yOffset = 3;
+        xOffset = -31.0;
+        roll = rollmax;
+      }
     }
-    if(roll == rollmax)
+    for(lane = 0; lane < 8 ; lane++)
     {
-      ph = 0;
-      zOffset = 0;
-      yOffset = 3;
-      xOffset = -31.0;
-      explosion = 0.0;
-      roll++;
+      explode_and_reset(lane);
+      roll_dat_ball(lane);
     }
-
-
     glutPostRedisplay();
   }
+
+
 
   /*
   *  Start up GLUT and tell it what to do
@@ -547,6 +782,9 @@ static void ball(double x,double y,double z,double r)
     mural_texture[2] = LoadTexBMP("3.bmp");
     mural_texture[3] = LoadTexBMP("4.bmp");
     wall_texture = LoadTexBMP("wall.bmp");
+    ball_texture = LoadTexBMP("ball.bmp");
+    cieling_texture = LoadTexBMP("cieling.bmp");
+    duct_texture = LoadTexBMP("duct.bmp");
     glutMainLoop();
     return 0;
   }

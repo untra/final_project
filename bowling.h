@@ -22,13 +22,19 @@
 extern "C" {
 #endif
 
+void cieling(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int cieling_texture);
+
+void duct_cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int duct_texture);
+
 void bowling_pin(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY);
 
 void alley(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture);
 
-void mural(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture );
+void mural(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture, int lighting );
 
 void divider(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
+
+void upcurve(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
 
 void ball_return_body(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY );
 
@@ -38,11 +44,11 @@ void floor_panel(double x, double y, double z, double xScale, double yScale, dou
 
 void wall(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture );
 
-void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion, unsigned int mural_texture, unsigned int floor_texture);
+void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion, unsigned int floor_texture, unsigned int cieling_texture, unsigned int duct_texture);
 
 void pins(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double explosion);
 
-void sphere(double x, double y, double z, double xScale, double yScale, double zScale);
+void bowling_ball(double x, double y, double z, double xScale, double yScale, double zScale, double rotation, unsigned int ball_texture, float color[]);
 
 void cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateY, double rotateZ, unsigned int texture);
 

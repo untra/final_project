@@ -1,11 +1,71 @@
 #include "bowling.h"
 
+void cieling(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int cieling_texture)
+{
+  double width = 4;
+  glPushMatrix();
+  glTranslated(x, y,z);
+  glRotated(rotateY, 0,1,0);
+  glRotated(rotateX, 1,0,0);
+  glScaled(xScale, yScale, zScale);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D,cieling_texture);
+  glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+  glBegin(GL_QUADS);
+  glTexCoord2f(0,0); glVertex3f(0,0,0);
+  glTexCoord2f(1,0); glVertex3f(width,0,0);
+  glTexCoord2f(1,1); glVertex3f(width,0,width);
+  glTexCoord2f(0,1); glVertex3f(0,0,width);
+  glDisable(GL_TEXTURE_2D);
 
+  glEnd();
+  glPopMatrix();
+}
+
+void duct_cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int duct_texture)
+{
+  double width = 4;
+  glPushMatrix();
+  glTranslated(x, y,z);
+  glRotated(rotateY, 0,1,0);
+  glRotated(rotateX, 1,0,0);
+  glScaled(xScale, yScale, zScale);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D,duct_texture);
+  glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+  glBegin(GL_QUADS);
+  //
+  glNormal3f( 0.0, -1.0, 0.0);
+  glTexCoord2f(0,0); glVertex3f(0,0,width);
+  glTexCoord2f(1,0); glVertex3f(width,0,width);
+  glTexCoord2f(1,1); glVertex3f(width,0,0);
+  glTexCoord2f(0,1); glVertex3f(0,0,0);
+  glNormal3f( 0.0, 0.0, 1.0);
+  glTexCoord2f(1,1); glVertex3f(0,0,width);
+  glTexCoord2f(0,1); glVertex3f(width    ,0,width);
+  glTexCoord2f(0,0); glVertex3f(width    ,width,width);
+  glTexCoord2f(1,0); glVertex3f(0,width,width);
+  glNormal3f( 0.0, 1.0, 0.0);
+  glTexCoord2f(0,0); glVertex3f(0,    width,width);
+  glTexCoord2f(1,0); glVertex3f(width,width,width);
+  glTexCoord2f(1,1); glVertex3f(width,width,    0);
+  glTexCoord2f(0,1); glVertex3f(0,width,    0);
+  glNormal3f( 0.0, 0.0, -1.0);
+  glTexCoord2f(1,1); glVertex3f(0        ,0,0);
+  glTexCoord2f(0,1); glVertex3f(width    ,0,0);
+  glTexCoord2f(0,0); glVertex3f(width    ,width,0);
+  glTexCoord2f(1,0); glVertex3f(0        ,width,0);
+  glEnd();
+
+  glDisable(GL_TEXTURE_2D);
+
+  glPopMatrix();
+}
 
 // bowling pins
 void bowling_pin(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY)
 {
-  int resolution = 24;
+  int resolution = 20;
   double fraction = 360 / resolution;
   double tilt,  width, alphawidth, height, additive;
   glPushMatrix();
@@ -18,7 +78,6 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   double alphaheight = 0.0;
   double alphatilt = 0.0;
   double turning = 0.0;
-  double f = 0.0;
   glBegin(GL_TRIANGLE_FAN);
   glColor3f(1,1,1);
   glNormal3f( 0, -1, 0);
@@ -30,6 +89,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   }
   glEnd();
   //side 1
+  double f = 0.0;;
+  f *=1.0;
   for(k = 1; k <= 13 ; k++)
   {
     additive = k < 12 ? (double)((12 - k)*(12 - k))/300 : 0;
@@ -202,8 +263,63 @@ void divider(double x, double y, double z,
       glEnd();
     }
     glPopMatrix();
-
   }
+
+  void upcurve(double x, double y, double z,
+    double xScale, double yScale, double zScale,
+    double rotateX, double rotateY)
+    {
+      int i;
+      double j;
+      double far = 2.0;
+      double icos[7] = {1.0 ,0.985,0.905,0.707,0.423,0.174, 0.0};
+      double isin[7] = {0.0 ,0.174,0.423,0.707,0.905,0.985, 1.0};
+      glPushMatrix();
+      glTranslated(x, y,z);
+      glRotated(rotateY, 0,1,0);
+      glRotated(rotateX, 1,0,0);
+      glScaled(xScale, yScale, zScale);
+      glBegin(GL_QUAD_STRIP);
+      glColor3f(0.6,0.6,0.6);
+      for(i=0; i<7 ;i++)
+      {
+        j = 5.5 * icos[i];
+        glNormal3f( 0.0 , icos[i]*icos[i], isin[i]*isin[i]);
+        glVertex3f( 0.0 , 6.0 - j, isin[i]);
+        glVertex3f( 1.0 , 6.0 - j, isin[i]);
+      }
+      glNormal3f( 0.0 , 0.0, 1.0);
+      glVertex3f( 0.0 , 6.0, 1.0);
+      glVertex3f( 1.0 , 6.0, 1.0);
+      glEnd();
+
+      glBegin(GL_QUAD_STRIP);
+      glNormal3f( 1.0, 0.0, 0.0);
+      for(i=0; i<7 ;i++)
+      {
+        j = 5.5 * icos[i];
+        glVertex3f( 1.0 , 6.0 - j, isin[i]);
+        glVertex3f( 1.0 , 6.0 - j, far);
+      }
+      glVertex3f( 1.0 , 6.0, 1.0);
+      glVertex3f( 1.0 , 6.0, 2.0);
+      glEnd();
+      glBegin(GL_QUAD_STRIP);
+      glNormal3f( -1.0, 0.0, 0.0);
+      for(i=0; i<7 ;i++)
+      {
+        j = 5.5 * icos[i];
+        glVertex3f( 0 , 6.0 - j, isin[i]);
+        glVertex3f( 0 , 6.0 - j, far);
+      }
+      glVertex3f( 0 , 6.0, 1.0);
+      glVertex3f( 0 , 6.0, 2.0);
+      glEnd();
+
+
+
+      glPopMatrix();
+    }
 
   void ball_return_body(double x, double y, double z,
     double xScale, double yScale, double zScale,
@@ -471,7 +587,13 @@ void alley(double x, double y, double z,
     double length = 12;
     double slightlyabove = 0.001;
     double xp, zp;
-
+    //  Set specular color to white
+   float white[] = {1,1,1,1};
+   float Emission[]  = {0.1,0.1,0.1,1.0};
+   float shinyvec[1] = {4.0};
+   glMaterialfv(GL_FRONT_AND_BACK,GL_SHININESS,shinyvec);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,Emission);
     glPushMatrix();
     glTranslated(x, y,z);
     glRotated(rotateY, 0,1,0);
@@ -519,6 +641,8 @@ void alley(double x, double y, double z,
       k = (double)((double)i / length);
       j = (double)((double)(i+1) / length);
       glBindTexture(GL_TEXTURE_2D,floor_texture);
+      // glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+      glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
       glBegin(GL_QUAD_STRIP);
       glNormal3f( 0, 1, 0);
       glTexCoord2f(0,k); glVertex3f(0,0,i);
@@ -567,7 +691,7 @@ void alley(double x, double y, double z,
       double top = 3.0;
       double length = 3.0;
       glEnable(GL_TEXTURE_2D);
-      glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+      glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
       glBindTexture(GL_TEXTURE_2D,wall_texture);
       glBegin(GL_QUADS);
       glColor3f(0.8,0.4,0.4);
@@ -585,13 +709,12 @@ void alley(double x, double y, double z,
 
   void mural(double x, double y, double z,
     double xScale, double yScale, double zScale,
-    double rotateX, double rotateY, unsigned int mural_texture )
+    double rotateX, double rotateY, unsigned int mural_texture, int lighting )
     {
       int length = 12;
-      float shinyvec[1];
-      float emission = 0.0;
+      float shinyvec[1] = {4};
       float white[] = {1,1,1,1};
-      float Emission[]  = {0.0,0.0,0.01*emission,1.0};
+      float Emission[]  = {0.2, 0.2, 0.2, 0.2,1.0};
       double bottom = 0.5;
       double top = 3.0;
 
@@ -670,23 +793,35 @@ void alley(double x, double y, double z,
     bowling_pin(x+8+(back/120),y+(back/120),z+115.5+(back/12),0.25*xScale,0.25*yScale,0.25*zScale,back,0);
   }
 
-  void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int mural_texture, unsigned int floor_texture)
+  void double_lane(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int floor_texture, unsigned int cieling_texture, unsigned int duct_texture)
   {
-    mural(x-2,y,z-10, 12*xScale,10*yScale,10*zScale , 0, 0, mural_texture);
+    // mural(x-2,y,z-10, 12*xScale,10*yScale,10*zScale , 0, 0, mural_texture);
     alley(x,y,z, 10*xScale,10*yScale,9.75*zScale , 0, 0, floor_texture);
-    pins(x,y,z,1,1,1,0,rotateY);
+    // pins(x,y,z,1,1,1,0,rotateY);
+    upcurve(x+12.5,y,z+100,4*xScale,1.0*yScale,10*zScale,0,0);
     divider(x+12.5,y,z, 4*xScale,1*yScale,10*zScale , 0, 0);
     cap(x+16.5,y,z,4*xScale,1*yScale,10*zScale,0,180);
     ball_return_body(x+17,y,z-15, 10*xScale,10*yScale,10*zScale , 0, 180);
     cap(x+16,y+3,z-30,3*xScale,0.5*yScale,5*zScale,0,180);
     alley(x+19,y,z, 10*xScale,10*yScale,9.75*zScale , 0, 0, floor_texture);
-    pins(x+19,y,z,1,1,1,0,rotateY);
+    // pins(x+19,y,z,1,1,1,0,rotateY);
+    upcurve(x+31.5,y,z+100,2*xScale,1.0*yScale,10*zScale,0,0);
     divider(x+31.5,y,z, 2*xScale,1*yScale,10*zScale , 0, 0);
     cap(x+33.5,y,z,2*xScale,1*yScale,5*zScale,0,180);
     floor_panel(x-2.5,y,z-10,12*xScale,10*yScale,10*zScale,0,0, floor_texture);
     floor_panel(x-2.5,y,z-20,12*xScale,10*yScale,10*zScale,0,0, floor_texture);
     floor_panel(x-2.5,y,z-30,12*xScale,10*yScale,10*zScale,0,0, floor_texture);
     floor_panel(x-2.5,y,z-40,12*xScale,10*yScale,10*zScale,0,0, floor_texture);
+    int i, j, k;
+    for(i = -1; i < 8 ; i++)
+    {
+      duct_cube(x+(4*i)+1,30,z-4,1,1,1,0,0,duct_texture);
+      for(j = 0; j < 30 ; j++)
+      {
+        k = 30 + (j / 5);
+        cieling(x+(4*i)+1,k,z+(4*j),1,1,1,0,0,cieling_texture);
+      }
+    }
   }
 
 
@@ -849,32 +984,41 @@ void alley(double x, double y, double z,
   }
 
   /*  Draw a white sphere */
-  void sphere(double x, double y, double z, double xScale, double yScale, double zScale)
+  void bowling_ball(double x, double y, double z, double xScale, double yScale, double zScale, double rotation, unsigned int ball_texture, float color[])
   {
     double az;
     double el;
-
-    float white[] = {1.0,1.0,1.0,1.0};
+    double scaler = 0.75;
+    double difference = 3.0;
+    double bigdifference = difference * 4.0;
     float black[] = {0.0,0.0,0.0,1.0};
 
     glPushMatrix();
     glTranslated(x, y, z);
-    glScaled(xScale, yScale, zScale);
-    glColor3f(1,1,1);
-    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,white);
+    glRotated(rotation, 1,0,0);
+    glRotated(90, 0,1,0);
+    glRotated(90, 0,0,1);
+    glScaled(xScale*scaler, yScale*scaler, zScale*scaler);
+    glEnable(GL_TEXTURE_2D);
+    glColor3f(1,1,0);
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,color);
     glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,black);
-    for(el = -90.0; el < 90; el+=0.5)
+    glBindTexture (GL_TEXTURE_2D, ball_texture);
+    for(el = -90.0; el < 90; el+=difference)
     {
       glBegin(GL_QUAD_STRIP);
-      for(az = 0.0; az <= 360.0; az+=0.5)
+      for(az = 0.0; az <= 360.0; az+=bigdifference)
       {
+        glTexCoord2f(az/360,(el+90.0)/180);
         glNormal3d(Sin(az)*Cos(el),Sin(el),Cos(az)*Cos(el));
         glVertex3d(Sin(az)*Cos(el),Sin(el),Cos(az)*Cos(el));
-        glNormal3d(Sin(az)*Cos(el+0.5),Sin(el+0.5),Cos(az)*Cos(el+0.5));
-        glVertex3d(Sin(az)*Cos(el+0.5),Sin(el+0.5),Cos(az)*Cos(el+0.5));
+        glTexCoord2f((az+bigdifference)/360,(el+90.0)/180);
+        glNormal3d(Sin(az)*Cos(el+difference),Sin(el+difference),Cos(az)*Cos(el+difference));
+        glVertex3d(Sin(az)*Cos(el+difference),Sin(el+difference),Cos(az)*Cos(el+difference));
       }
       glEnd();
     }
+    glDisable(GL_TEXTURE_2D);
 
     glPopMatrix();
   }
