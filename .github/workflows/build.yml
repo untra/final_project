@@ -1,0 +1,89 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Only one deploy at a time; cancel any in-flight redundant runs on the same ref.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # for gh-pages publish
+
+jobs:
+
+  lint:
+    name: lint (cppcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck imagemagick
+      - name: generate textures (so cppcheck sees the right include graph)
+        run: make textures
+      - name: cppcheck
+        run: make lint
+
+  build-native:
+    name: build-native (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install ImageMagick (texture conversion fallback if sips ever stops working)
+        run: brew install imagemagick
+      - name: textures + native build
+        run: |
+          make textures
+          make
+      - name: verify binary exists
+        run: file ./final
+
+  build-wasm:
+    name: build-wasm (Emscripten)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+          actions-cache-folder: 'emsdk-cache'
+      - name: verify emcc
+        run: emcc --version
+      - name: textures + wasm build
+        run: |
+          make textures
+          make wasm
+      - name: list build artifacts
+        run: ls -la build/web
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web/
+          if-no-files-found: error
+
+  deploy:
+    name: deploy (gh-pages)
+    needs: build-wasm
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: download wasm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: build/web
+      - name: publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          force_orphan: true

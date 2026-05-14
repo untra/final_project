@@ -32,3 +32,12 @@
 *.dSYM/
 
 hw2
+
+# Native binary
+final
+
+# wasm + generated assets
+build/
+assets/png/
+assets/textures.c
+assets/textures.h

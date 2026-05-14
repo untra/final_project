@@ -18,10 +18,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include "CSCIx229.h"
 #include "bowling.h"
+#include "assets/textures.h"
 
 //  OpenGL with prototypes for glext
 #define GL_GLxOffsetT_PROTOTYPES
@@ -774,17 +773,17 @@ static void ball(double x,double y,double z,double r, float color[])
     glutMouseFunc(mouse);
     glutMotionFunc(motionmouse);
     glutKeyboardFunc(key);
-    // load textures
-    floor_texture = LoadTexBMP("floor.bmp");
-    arrow_texture = LoadTexBMP("arrows.bmp");
-    mural_texture[0] = LoadTexBMP("1.bmp");
-    mural_texture[1] = LoadTexBMP("2.bmp");
-    mural_texture[2] = LoadTexBMP("3.bmp");
-    mural_texture[3] = LoadTexBMP("4.bmp");
-    wall_texture = LoadTexBMP("wall.bmp");
-    ball_texture = LoadTexBMP("ball.bmp");
-    cieling_texture = LoadTexBMP("cieling.bmp");
-    duct_texture = LoadTexBMP("duct.bmp");
+    // load textures (decoded from embedded PNG byte arrays — see assets/textures.h)
+    floor_texture    = LoadTexFromMemory(tex_floor,   tex_floor_len);
+    arrow_texture    = LoadTexFromMemory(tex_arrows,  tex_arrows_len);
+    mural_texture[0] = LoadTexFromMemory(tex_1,       tex_1_len);
+    mural_texture[1] = LoadTexFromMemory(tex_2,       tex_2_len);
+    mural_texture[2] = LoadTexFromMemory(tex_3,       tex_3_len);
+    mural_texture[3] = LoadTexFromMemory(tex_4,       tex_4_len);
+    wall_texture     = LoadTexFromMemory(tex_wall,    tex_wall_len);
+    ball_texture     = LoadTexFromMemory(tex_ball,    tex_ball_len);
+    cieling_texture  = LoadTexFromMemory(tex_cieling, tex_cieling_len);
+    duct_texture     = LoadTexFromMemory(tex_duct,    tex_duct_len);
     glutMainLoop();
     return 0;
   }

@@ -27,6 +27,7 @@ extern "C" {
 void Print(const char* format , ...);
 void Fatal(const char* format , ...);
 unsigned int LoadTexBMP(const char* file);
+unsigned int LoadTexFromMemory(const unsigned char* data, int len);
 void Project(double fov,double asp,double dim);
 void ErrCheck(const char* where);
 int  LoadOBJ(const char* file);

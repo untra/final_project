@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bowling Alley — Samuel Volin, 2015</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Bowling Alley</h1>
+    <p class="subtitle">CSCI-4229 final project · Fall 2015 · ported to WebAssembly</p>
+  </header>
+
+  <main>
+    <div id="canvas-wrap">
+      <canvas id="canvas" tabindex="0"
+              oncontextmenu="event.preventDefault()"
+              width="900" height="600"></canvas>
+      <div id="loading">Loading…</div>
+    </div>
+
+    <section id="controls">
+      <h2>Controls</h2>
+      <p class="hint">Click the canvas first, then use the keyboard.</p>
+      <ul>
+        <li><kbd>1</kbd>–<kbd>8</kbd> launch a ball on that lane</li>
+        <li><kbd>P</kbd> toggle orbit / first-person projection</li>
+        <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> first-person move</li>
+        <li><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> rotate view</li>
+        <li><kbd>PgUp</kbd> / <kbd>PgDn</kbd> or wheel — zoom</li>
+        <li><kbd>[</kbd> / <kbd>]</kbd> camera height</li>
+        <li><kbd>L</kbd> toggle lighting · <kbd>X</kbd> toggle axes</li>
+        <li><kbd>+</kbd> / <kbd>-</kbd> field of view</li>
+        <li><kbd>R</kbd> roll demo · <kbd>0</kbd> reset view</li>
+        <li>Left-click drag — rotate</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/untra">github.com/untra</a>
+  </footer>
+
+  <script type="text/javascript">
+    var Module = {
+      preRun: [],
+      postRun: [],
+      canvas: (function () {
+        var c = document.getElementById('canvas');
+        c.addEventListener('webglcontextlost', function (e) {
+          alert('WebGL context lost. Reload the page to recover.');
+          e.preventDefault();
+        }, false);
+        return c;
+      })(),
+      print:    function (t) { console.log(t); },
+      printErr: function (t) { console.error(t); },
+      onRuntimeInitialized: function () {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('canvas').focus();
+      }
+    };
+    window.addEventListener('load', function () {
+      document.getElementById('canvas').focus();
+    });
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

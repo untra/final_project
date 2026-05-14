@@ -1,0 +1,19 @@
+# Style chosen to roughly match the 2015 codebase: 3-space indent, Allman
+# braces, pointer attached to type (`char* file`). The vendored stb_image
+# and generated textures.* are excluded via .clang-format-ignore.
+BasedOnStyle: LLVM
+IndentWidth: 3
+TabWidth: 3
+UseTab: Never
+BreakBeforeBraces: Allman
+PointerAlignment: Left
+ColumnLimit: 100
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: None
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+SpaceAfterCStyleCast: false
+SpacesInParentheses: false
+SortIncludes: Never
