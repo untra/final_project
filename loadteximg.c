@@ -34,7 +34,7 @@ unsigned int LoadTexFromMemory(const unsigned char* data, int len)
    ErrCheck("LoadTexFromMemory pre");
    glGenTextures(1, &texture);
    glBindTexture(GL_TEXTURE_2D, texture);
-   glTexImage2D(GL_TEXTURE_2D, 0, 3, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
    if (glGetError()) Fatal("Error in glTexImage2D %dx%d\n", w, h);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
