@@ -3,7 +3,7 @@
  */
 #include "CSCIx229.h"
 
-void Fatal(const char* format , ...)
+_Noreturn void Fatal(const char* format , ...)
 {
    va_list args;
    va_start(args,format);

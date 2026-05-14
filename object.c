@@ -46,7 +46,7 @@ static int linelen=0;    //  Length of line
 static char* line=NULL;  //  Internal storage for line
 static char* readline(FILE* f)
 {
-   char ch;  //  Character read
+   int ch;   //  Character read (int so EOF is distinguishable)
    int k=0;  //  Character count
    while ((ch = fgetc(f)) != EOF)
    {
@@ -185,7 +185,9 @@ static void LoadMaterial(const char* file)
          int l = strlen(str);
          //  Allocate memory for structure
          k = Nmtl++;
-         mtl = (mtl_t*)realloc(mtl,Nmtl*sizeof(mtl_t));
+         mtl_t* tmp = (mtl_t*)realloc(mtl,Nmtl*sizeof(mtl_t));
+         if (!tmp) Fatal("Cannot allocate %d materials\n",Nmtl);
+         mtl = tmp;
          //  Store name
          mtl[k].name = (char*)malloc(l+1);
          if (!mtl[k].name) Fatal("Cannot allocate %d for name\n",l+1);

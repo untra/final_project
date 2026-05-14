@@ -50,7 +50,7 @@ void pins(double x, double y, double z, double xScale, double yScale, double zSc
 
 void bowling_ball(double x, double y, double z, double xScale, double yScale, double zScale, double rotation, unsigned int ball_texture, float color[]);
 
-void cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateY, double rotateZ, unsigned int texture);
+void cube(double x, double y, double z, double xScale, double yScale, double zScale, double rotateX, double rotateY, unsigned int texture);
 
 void pyramid(double x, double y, double z, double xScale, double yScale, double zScale, double rotateAngle, unsigned int texture);
 

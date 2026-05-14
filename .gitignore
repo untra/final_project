@@ -41,3 +41,6 @@ build/
 assets/png/
 assets/textures.c
 assets/textures.h
+
+# build final
+final.*
