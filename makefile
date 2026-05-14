@@ -95,7 +95,7 @@ EMCC_FLAGS = -O3 \
 # serves it at the directory root with no extra config.
 wasm: $(BUILD_WEB)/index.html
 
-$(BUILD_WEB)/index.html: $(WASM_SRCS) bowling.h CSCIx229.h assets/textures.h \
+$(BUILD_WEB)/index.html: $(WASM_SRCS) bowling.h CSCIx229.h wasm_compat.h assets/textures.h \
                          web/shell.html web/style.css web/CNAME web/.nojekyll
 	mkdir -p $(BUILD_WEB)
 	$(EMCC) $(EMCC_FLAGS) $(WASM_SRCS) --shell-file web/shell.html -o $@
