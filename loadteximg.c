@@ -40,5 +40,8 @@ unsigned int LoadTexFromMemory(const unsigned char* data, int len)
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
    stbi_image_free(img);
+#ifdef __EMSCRIPTEN__
+   printf("LoadTexFromMemory: %dx%d ch=%d -> id %u\n", w, h, channels, texture);
+#endif
    return texture;
 }

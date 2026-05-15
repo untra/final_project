@@ -206,14 +206,16 @@ static inline void wasm_set_texcoord2f(GLfloat s, GLfloat t)
 }
 #define glTexCoord2f wasm_set_texcoord2f
 
-/* Apply the COLOR_MATERIAL effect by calling glMaterialfv ONLY when we're
-   outside a glBegin/glEnd block (g_wasm_mode == 0). Emscripten's
-   immediate-mode emulation appears not to handle glMaterialfv inserted
-   between glBegin/glEnd correctly — textures stop binding when we try.
-   Most scene code in this project calls glColor3f either once before
-   glBegin or once inside it, never varying per-vertex, so deferring to
-   outside-Begin/End is a safe approximation: the *next* glColor3f that
-   isn't inside Begin/End will catch up. */
+/* COLOR_MATERIAL emulation: forward color to glMaterialfv when
+   color-material is on, but ONLY outside glBegin/glEnd. Calling
+   glMaterialfv between Begin/End empirically breaks texture binding in
+   Emscripten's LEGACY_GL_EMULATION — verified twice now, once by the
+   previous session and again when this gate was briefly removed.
+
+   bowling.c sets colour inside Begin/End ~35 times so most surfaces
+   never get a material update through this path; the lighting setup
+   in final.c compensates by running with brighter ambient/diffuse on
+   the wasm build so default-material surfaces stay visible. */
 static inline void wasm_set_color3f(GLfloat r, GLfloat g, GLfloat b)
 {
     g_wasm_cur.r = r; g_wasm_cur.g = g; g_wasm_cur.b = b; g_wasm_cur.a = 1.0f;

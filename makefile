@@ -89,6 +89,7 @@ EMCC_FLAGS = -O3 \
              -I. \
              -s LEGACY_GL_EMULATION=1 \
              -s USE_WEBGL2=1 \
+             -s GL_UNSAFE_OPTS=0 \
              -s ALLOW_MEMORY_GROWTH=1 \
              -lglut
 

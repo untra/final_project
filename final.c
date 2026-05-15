@@ -211,6 +211,33 @@ static void ball(double x,double y,double z,double r, float color[])
     double fall;
     const double len=10.0;  //  Length of axes
     //  Erase the window and the depth buffer
+#ifdef __EMSCRIPTEN__
+    /* DIAGNOSTIC: bright magenta clear so a stale-cache load is
+       immediately obvious. */
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    {
+        static int first_frame_logged = 0;
+        if (!first_frame_logged) {
+            printf("WASM BUILD v7 (player-perspective): mode=%d xOffset=%.1f yOffset=%.1f zOffset=%.1f th=%d ph=%d dim=%.1f\n",
+                   mode, xOffset, yOffset, zOffset, th, ph, dim);
+            first_frame_logged = 1;
+        }
+    }
+    /* DIAGNOSTIC: force first-person "player at the foul line" view —
+       camera at lane-cluster center (x=-44, between leftmost x=-108
+       and rightmost x=19), eye height y=4, just behind the front of
+       the lanes (z=-30 since balls roll from z=-25 forward to z=120).
+       Look straight down the lanes. This should show all 8 lanes
+       receding into the distance with pins/mural at the far end. */
+    mode = 1;
+    xOffset = -44;
+    yOffset = 4;
+    zOffset = -30;
+    th = 0;
+    ph = 0;
+    dim = 50;
+    Project(fov, asp, dim);
+#endif
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     //  Enable Z-buffering in OpenGL
     glEnable(GL_DEPTH_TEST);
@@ -238,8 +265,19 @@ static void ball(double x,double y,double z,double r, float color[])
     if (light)
     {
       //  Translate intensity to color vectors
+#ifdef __EMSCRIPTEN__
+      /* Brighter on wasm: the COLOR_MATERIAL emulation can't apply
+         material updates inside Begin/End (Emscripten breaks texture
+         binding if it tries), so most surfaces stick with the GL
+         default white material. With the native dim values they'd
+         render near-black; cranking ambient+diffuse keeps the scene
+         readable. */
+      float Ambient[]   = {0.55,0.55,0.55,1.0};
+      float Diffuse[]   = {0.55,0.55,0.55,1};
+#else
       float Ambient[]   = {0.1,0.1,0.1,1.0};
       float Diffuse[]   = {0.3,0.3,0.3,1};
+#endif
       float Specular[]  = {0.2,0.2,0.2,1};
       float white[]     = {1,1,1,1};
       // float red[]     = {1,0,0,1};
@@ -332,6 +370,23 @@ static void ball(double x,double y,double z,double r, float color[])
     }
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
+#ifdef __EMSCRIPTEN__
+    /* Disable lighting for the rest of the frame on wasm. The native
+       build relies on GL_COLOR_MATERIAL to feed per-vertex glColor3f
+       calls (issued inside glBegin/glEnd by bowling.c) into the
+       material's ambient+diffuse. Emscripten's LEGACY_GL_EMULATION
+       does support glMaterialfv between glBegin/glEnd in theory, but
+       in practice doing so breaks texture binding for the surrounding
+       quad — so the wasm_compat.h shim gates COLOR_MATERIAL updates
+       to outside-Begin/End only, which means most surfaces would
+       render with the GL default material × dim ambient = invisible.
+       Turning lighting off here flips the path to GL_MODULATE
+       (texture × glColor), which gives flat-shaded but actually
+       visible geometry. The light marker ball() above still rendered
+       with lighting enabled, so the animated light position is
+       preserved as a visual cue. */
+    glDisable(GL_LIGHTING);
+#endif
 
     wall(33.5,0,-30,10,12,10,0,180,wall_texture);
     wall(33.5,0,0,10,12,10,0,180,wall_texture);
