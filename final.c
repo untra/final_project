@@ -217,7 +217,7 @@ static void ball(double x,double y,double z,double r, float color[])
     {
       static int v_logged = 0;
       if (!v_logged) {
-        printf("WASM BUILD vB6: Phase B static VBO renderer owns lane surfaces\n");
+        printf("WASM BUILD vB14-diag: murals relocated to z=20 + UV-color shader\n");
         v_logged = 1;
       }
     }

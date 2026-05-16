@@ -206,6 +206,24 @@ try {
     { name: 'angle-2', keys: ['ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight',
                               'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight'] },
     { name: 'angle-3', keys: ['ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp'] },
+    // angle-4: from angle-3 orbit pose, press 'p' once to advance mode 0 -> 1
+    // (first-person variant), which resets eye to (0, 0, 2*dim) = (0, 0, 100)
+    // looking +Z toward (0, 0, 200). Then ArrowUp x4 tilts ph by +20 degrees
+    // so the view frustum lifts to include the murals (world y=6..36 at z=108).
+    // Without the tilt, fov=60 from y=0 only sees roughly y=-5.77..+5.77 at
+    // z=110, just below the mural's bottom edge.
+    { name: 'angle-4', keys: ['KeyP', 'ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp'] },
+    // angle-5: from angle-4 (mode 1, eye (0,0,100), ph=20) press 'p' again to
+    // cycle mode 1 -> 2 -> 0 (orbit reset), then 'p' once more to land back in
+    // mode 1 with eye (0, 0, 100), then '[' x10 to raise yOffset to 10 (note:
+    // checkOffsets clamps y to [2,28] so first '[' moves 0 -> 1 then clamp to
+    // 2, subsequent ones increment cleanly), and ArrowUp x2 for a mild upward
+    // tilt. From elevated eye at (0, 10, 100) the murals at y=6..36 sit
+    // squarely in the frustum.
+    { name: 'angle-5', keys: ['KeyP', 'KeyP', 'BracketLeft', 'BracketLeft', 'BracketLeft',
+                              'BracketLeft', 'BracketLeft', 'BracketLeft', 'BracketLeft',
+                              'BracketLeft', 'BracketLeft', 'BracketLeft',
+                              'ArrowUp', 'ArrowUp'] },
   ];
 
   // angle-0 keeps the original `latest.png` filename for backward compat with

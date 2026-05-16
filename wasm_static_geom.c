@@ -66,7 +66,8 @@ static const char* k_fragment_shader =
     "varying vec2 v_uv;\n"
     "varying vec4 v_color;\n"
     "void main(void) {\n"
-    "  gl_FragColor = texture2D(u_texture, v_uv) * v_color;\n"
+    "  vec4 t = texture2D(u_texture, v_uv);\n"
+    "  gl_FragColor = vec4(v_uv.x, v_uv.y, 0.5, 1.0) + t * 0.0;\n"
     "}\n";
 
 static int reserve_vertices(size_t add)
@@ -188,7 +189,11 @@ static void build_murals(void)
     int i;
     for (i = 0; i < 4; i++) {
         WasmStaticBatch* batch = begin_batch(mural_texture[i]);
-        WasmTransform tr = {xs[i], 0.0, -10.0, 12.0, 12.0, 10.0, 0.0, 0.0};
+        /* vB14 diag: relocate murals from z=-10 (world z=108..110) to z=-100
+           (world z=18..20) -- close to spawn camera. If murals render UV
+           gradient here but not at the original z, the bug is position/far-
+           plane/depth-related, not geometry/sampling. */
+        WasmTransform tr = {xs[i], 0.0, -100.0, 12.0, 12.0, 10.0, 0.0, 0.0};
         if (batch) append_quad(batch, &tr, local, uv, color);
     }
 }
@@ -394,6 +399,19 @@ void wasm_static_geom_init(void)
 
     printf("[wasm static geom] ready: %lu vertices across %d texture batches\n",
            (unsigned long)g_vertex_count, g_batch_count);
+    /* vB11 diag: dump first vertex of every batch so we can verify the VBO
+       data matches the bowling.c geometry. Walls batch 0 starts at v[0],
+       mural[0] batch 1 starts at v[72]. */
+    {
+        int b;
+        for (b = 0; b < g_batch_count; b++) {
+            int idx = g_batches[b].first;
+            if (idx < 0 || (size_t)idx >= g_vertex_count) continue;
+            const WasmStaticVertex* v = &g_vertices[idx];
+            printf("[wasm static geom] batch %d first v: pos=(%.2f,%.2f,%.2f) uv=(%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)\n",
+                   b, v->x, v->y, v->z, v->u, v->v, v->r, v->g, v->b, v->a);
+        }
+    }
     g_ready = 1;
 }
 
@@ -431,10 +449,32 @@ void wasm_static_geom_draw(void)
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (const void*)offsetof(WasmStaticVertex, u));
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (const void*)offsetof(WasmStaticVertex, r));
 
+    {
+        static int once = 0;
+        if (!once) {
+            for (i = 0; i < g_batch_count; i++) {
+                printf("[wasm static geom] batch %d: tex=%u first=%d count=%d\n",
+                       i, g_batches[i].texture, g_batches[i].first, g_batches[i].count);
+            }
+            once = 1;
+        }
+    }
     for (i = 0; i < g_batch_count; i++) {
+        GLenum err;
         if (g_batches[i].count <= 0) continue;
+        /* vB13 diag: re-enable all batches but use UV-as-color shader so
+           each surface shows a uv gradient that proves geometry/uv flow. */
         glBindTexture(GL_TEXTURE_2D, g_batches[i].texture);
         glDrawArrays(GL_TRIANGLES, g_batches[i].first, g_batches[i].count);
+        err = glGetError();
+        if (err != GL_NO_ERROR) {
+            static int err_logged[8] = {0};
+            if (i < 8 && !err_logged[i]) {
+                printf("[wasm static geom] batch %d (tex=%u) drew with glGetError=0x%x\n",
+                       i, g_batches[i].texture, err);
+                err_logged[i] = 1;
+            }
+        }
     }
 
     glDisableVertexAttribArray(2);
