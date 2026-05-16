@@ -44,3 +44,8 @@ assets/textures.h
 
 # build final
 final.*
+
+# probe harness (tools/) — npm-managed Node deps + cached Playwright browser binaries
+tools/node_modules/
+tools/package-lock.json
+tools/.installed

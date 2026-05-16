@@ -41,6 +41,9 @@ unsigned int LoadTexFromMemory(const unsigned char* data, int len)
 
    stbi_image_free(img);
 #ifdef __EMSCRIPTEN__
+   /* Confirm each PNG decoded and the texture name allocated. All 10
+      textures in this scene should print non-zero ids. Useful smoke
+      test when bringing the wasm build back up. */
    printf("LoadTexFromMemory: %dx%d ch=%d -> id %u\n", w, h, channels, texture);
 #endif
    return texture;

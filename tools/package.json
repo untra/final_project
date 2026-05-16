@@ -1,0 +1,14 @@
+{
+  "name": "bowling-alley-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent-driven test/diagnostic harness for the WASM bowling-alley port. Not shipped to users — only ever run from `make wasm-probe` or `node tools/wasm-probe.mjs`.",
+  "scripts": {
+    "probe": "node wasm-probe.mjs",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

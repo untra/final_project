@@ -21,6 +21,9 @@
 #include "CSCIx229.h"
 #include "bowling.h"
 #include "assets/textures.h"
+#ifdef __EMSCRIPTEN__
+#include "wasm_static_geom.h"
+#endif
 
 //  OpenGL with prototypes for glext
 #define GL_GLxOffsetT_PROTOTYPES
@@ -210,34 +213,20 @@ static void ball(double x,double y,double z,double r, float color[])
     int i;
     double fall;
     const double len=10.0;  //  Length of axes
-    //  Erase the window and the depth buffer
 #ifdef __EMSCRIPTEN__
-    /* DIAGNOSTIC: bright magenta clear so a stale-cache load is
-       immediately obvious. */
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
     {
-        static int first_frame_logged = 0;
-        if (!first_frame_logged) {
-            printf("WASM BUILD v7 (player-perspective): mode=%d xOffset=%.1f yOffset=%.1f zOffset=%.1f th=%d ph=%d dim=%.1f\n",
-                   mode, xOffset, yOffset, zOffset, th, ph, dim);
-            first_frame_logged = 1;
-        }
+      static int v_logged = 0;
+      if (!v_logged) {
+        printf("WASM BUILD vB6: Phase B static VBO renderer owns lane surfaces\n");
+        v_logged = 1;
+      }
     }
-    /* DIAGNOSTIC: force first-person "player at the foul line" view —
-       camera at lane-cluster center (x=-44, between leftmost x=-108
-       and rightmost x=19), eye height y=4, just behind the front of
-       the lanes (z=-30 since balls roll from z=-25 forward to z=120).
-       Look straight down the lanes. This should show all 8 lanes
-       receding into the distance with pins/mural at the far end. */
-    mode = 1;
-    xOffset = -44;
-    yOffset = 4;
-    zOffset = -30;
-    th = 0;
-    ph = 0;
-    dim = 50;
-    Project(fov, asp, dim);
+    /* Keep the remaining legacy immediate-mode draws from inheriting the
+       previous frame's bowling-ball material tint. The static textured
+       alley geometry now uses the wasm_static_geom VBO path below. */
+    glColor3f(1.0f, 1.0f, 1.0f);
 #endif
+    //  Erase the window and the depth buffer
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     //  Enable Z-buffering in OpenGL
     glEnable(GL_DEPTH_TEST);
@@ -371,23 +360,8 @@ static void ball(double x,double y,double z,double r, float color[])
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 #ifdef __EMSCRIPTEN__
-    /* Disable lighting for the rest of the frame on wasm. The native
-       build relies on GL_COLOR_MATERIAL to feed per-vertex glColor3f
-       calls (issued inside glBegin/glEnd by bowling.c) into the
-       material's ambient+diffuse. Emscripten's LEGACY_GL_EMULATION
-       does support glMaterialfv between glBegin/glEnd in theory, but
-       in practice doing so breaks texture binding for the surrounding
-       quad — so the wasm_compat.h shim gates COLOR_MATERIAL updates
-       to outside-Begin/End only, which means most surfaces would
-       render with the GL default material × dim ambient = invisible.
-       Turning lighting off here flips the path to GL_MODULATE
-       (texture × glColor), which gives flat-shaded but actually
-       visible geometry. The light marker ball() above still rendered
-       with lighting enabled, so the animated light position is
-       preserved as a visual cue. */
-    glDisable(GL_LIGHTING);
-#endif
-
+    wasm_static_geom_draw();
+#else
     wall(33.5,0,-30,10,12,10,0,180,wall_texture);
     wall(33.5,0,0,10,12,10,0,180,wall_texture);
     wall(33.5,0,30,10,12,10,0,180,wall_texture);
@@ -398,12 +372,14 @@ static void ball(double x,double y,double z,double r, float color[])
     mural(-38,0,-10, 12,12,10 , 0, 0, mural_texture[1], light);
     mural(-74,0,-10, 12,12,10 , 0, 0, mural_texture[2], light);
     mural(-110,0,-10, 12,12,10 , 0, 0, mural_texture[3], light);
+#endif
     for(i = 0 ; i < 8 ; i++)
     {
       fall = explosion[i] > 180 ? (double)explosion[i]/180.0 : 0;
       fall = fall*fall;
       pins(pin_x[i],reset[i] - fall,0,1,1,1,0,explosion[i]);
     }
+#ifndef __EMSCRIPTEN__
     double_lane(0,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
     double_lane(-36,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
     double_lane(-72,0,0,1,1,1,0,0,floor_texture, cieling_texture, duct_texture);
@@ -414,6 +390,7 @@ static void ball(double x,double y,double z,double r, float color[])
     wall(-110.5,0,30,10,12,10,0,0,wall_texture);
     wall(-110.5,0,60,10,12,10,0,0,wall_texture);
     wall(-110.5,0,90,10,12,10,0,0,wall_texture);
+#endif
     for(i = 0 ; i < 8 ; i++)
     {
       bowling_ball(bowling_ball_x(i),bowling_ball_y(i),bowling_ball_z[i],1,1,1,ball_ph[i],ball_texture, colors[i]);
@@ -693,6 +670,12 @@ static void ball(double x,double y,double z,double r, float color[])
     glViewport(0,0, width,height);
     //  Set projection
     Project(fov,asp,dim);
+#ifdef __EMSCRIPTEN__
+    {
+      static int n = 0;
+      if (n < 2) { printf("[wasm reshape] w=%d h=%d asp=%.3f\n", width, height, asp); n++; }
+    }
+#endif
   }
 
   void explode_and_reset(int lane)
@@ -820,6 +803,14 @@ static void ball(double x,double y,double z,double r, float color[])
     ball_texture     = LoadTexFromMemory(tex_ball,    tex_ball_len);
     cieling_texture  = LoadTexFromMemory(tex_cieling, tex_cieling_len);
     duct_texture     = LoadTexFromMemory(tex_duct,    tex_duct_len);
+#ifdef __EMSCRIPTEN__
+    wasm_static_geom_init();
+    // Informational marker for tools/wasm-probe.mjs: textures finished loading
+    // before glutMainLoop ran. Probe asserts this line + ≥10 preceding
+    // LoadTexFromMemory log lines. Frame-ready gating uses rAF, not this.
+    printf("WASM_PROBE_TEXTURES_LOADED\n");
+    fflush(stdout);
+#endif
     glutMainLoop();
     return 0;
   }

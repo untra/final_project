@@ -16,9 +16,8 @@ void cieling(double x, double y, double z, double xScale, double yScale, double 
   glTexCoord2f(1,0); glVertex3f(width,0,0);
   glTexCoord2f(1,1); glVertex3f(width,0,width);
   glTexCoord2f(0,1); glVertex3f(0,0,width);
-  glDisable(GL_TEXTURE_2D);
-
   glEnd();
+  glDisable(GL_TEXTURE_2D);
   glPopMatrix();
 }
 
@@ -235,7 +234,6 @@ void divider(double x, double y, double z,
     glRotated(rotateX, 1,0,0);
     glScaled(xScale, yScale, zScale);
 
-    glBegin(GL_QUAD_STRIP);
     glColor3f(0.6,0.6,0.6);
     // divider
     for(i = 0; i < length ; i++)
@@ -601,7 +599,6 @@ void alley(double x, double y, double z,
     glScaled(xScale, yScale, zScale);
 
 
-    glBegin(GL_QUAD_STRIP);
     glColor3f(0.2,0.2,0.2);
     // gutters
     for(l = 0; l < 2 ; l++)

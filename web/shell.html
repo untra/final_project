@@ -40,6 +40,28 @@
   </main>
 
   <script type="text/javascript">
+    // Belt-and-suspenders: if anything bypasses Module.webglContextAttributes,
+    // force preserveDrawingBuffer at the canvas API level too. Required so
+    // tools/wasm-probe.mjs (Playwright page.screenshot) can read the WebGL
+    // backing store. Negligible perf cost for this canvas size.
+    (function () {
+      var orig = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+        if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+          attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+        }
+        return orig.call(this, type, attrs);
+      };
+    })();
+  </script>
+  <script type="text/javascript">
+    // Per-page-load cache-buster used by Module.locateFile below. The wasm
+    // and data URLs are constructed inside the generated index.js, so a query
+    // string on the HTML alone doesn't bust them — must hook locateFile.
+    // Round-2 diagnostics (WASM_DIAGNOSTICS_2.md:234-242) document the
+    // stale-wasm failure mode this defends against.
+    var __probe_t = Date.now();
+
     var Module = {
       preRun: [],
       postRun: [],
@@ -51,8 +73,17 @@
         }, false);
         return c;
       })(),
-      print:    function (t) { console.log(t); },
-      printErr: function (t) { console.error(t); },
+      // Primary mechanism — Emscripten's library_webgl.js reads this when
+      // creating the WebGL context. Must be set before the Emscripten loader
+      // runs (do not mention the literal triple-brace marker — it gets
+      // substituted into a script tag that breaks JS parsing).
+      webglContextAttributes: { preserveDrawingBuffer: true, antialias: false },
+      locateFile: function (path, prefix) {
+        var base = (prefix || '') + path;
+        return base + (base.indexOf('?') >= 0 ? '&' : '?') + 't=' + __probe_t;
+      },
+      print:    function (t) { console.log('[wasm]', t); },
+      printErr: function (t) { console.error('[wasm]', t); },
       onRuntimeInitialized: function () {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('canvas').focus();
