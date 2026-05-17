@@ -24,6 +24,7 @@ typedef struct {
     GLuint texture;
     GLint first;
     GLsizei count;
+    GLboolean use_texture;
 } WasmStaticBatch;
 
 typedef struct {
@@ -37,6 +38,7 @@ static GLuint g_vbo;
 static GLint g_u_projection = -1;
 static GLint g_u_modelview = -1;
 static GLint g_u_texture = -1;
+static GLint g_u_use_texture = -1;
 static WasmStaticBatch g_batches[8];
 static int g_batch_count;
 static int g_ready;
@@ -63,10 +65,15 @@ static const char* k_vertex_shader =
 static const char* k_fragment_shader =
     "precision mediump float;\n"
     "uniform sampler2D u_texture;\n"
+    "uniform bool u_use_texture;\n"
     "varying vec2 v_uv;\n"
     "varying vec4 v_color;\n"
     "void main(void) {\n"
-    "  gl_FragColor = texture2D(u_texture, v_uv) * v_color;\n"
+    "  if (u_use_texture) {\n"
+    "    gl_FragColor = texture2D(u_texture, v_uv) * v_color;\n"
+    "  } else {\n"
+    "    gl_FragColor = v_color;\n"
+    "  }\n"
     "}\n";
 
 static int reserve_vertices(size_t add)
@@ -91,6 +98,7 @@ static WasmStaticBatch* begin_batch(GLuint texture)
     batch->texture = texture;
     batch->first = (GLint)g_vertex_count;
     batch->count = 0;
+    batch->use_texture = GL_TRUE;
     return batch;
 }
 
@@ -359,7 +367,8 @@ static int build_program(void)
     g_u_projection = glGetUniformLocation(g_program, "u_projection");
     g_u_modelview = glGetUniformLocation(g_program, "u_modelview");
     g_u_texture = glGetUniformLocation(g_program, "u_texture");
-    return g_u_projection >= 0 && g_u_modelview >= 0 && g_u_texture >= 0;
+    g_u_use_texture = glGetUniformLocation(g_program, "u_use_texture");
+    return g_u_projection >= 0 && g_u_modelview >= 0 && g_u_texture >= 0 && g_u_use_texture >= 0;
 }
 
 void wasm_static_geom_init(void)
@@ -465,14 +474,15 @@ void wasm_static_geom_draw(void)
     for (i = 0; i < g_batch_count; i++) {
         GLenum err;
         if (g_batches[i].count <= 0) continue;
+        glUniform1i(g_u_use_texture, g_batches[i].use_texture ? 1 : 0);
         glBindTexture(GL_TEXTURE_2D, g_batches[i].texture);
         glDrawArrays(GL_TRIANGLES, g_batches[i].first, g_batches[i].count);
         err = glGetError();
         if (err != GL_NO_ERROR) {
-            static int err_logged[8] = {0};
-            if (i < 8 && !err_logged[i]) {
-                printf("[wasm static geom] batch %d (tex=%u) drew with glGetError=0x%x\n",
-                       i, g_batches[i].texture, err);
+            static int err_logged[16] = {0};
+            if (i < 16 && !err_logged[i]) {
+                printf("[wasm static geom] batch %d (tex=%u use_tex=%d) drew with glGetError=0x%x\n",
+                       i, g_batches[i].texture, g_batches[i].use_texture, err);
                 err_logged[i] = 1;
             }
         }
