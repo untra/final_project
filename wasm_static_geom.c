@@ -153,6 +153,28 @@ static void append_quad(WasmStaticBatch* batch,
     push_vertex(batch, p[3], uv[3], color);
 }
 
+/* Emit (n - 2) triangles as a fan around verts[0]. Used for
+   GL_TRIANGLE_FAN and GL_POLYGON (convex). Untextured; zero UV. */
+static void append_fan(WasmStaticBatch* batch,
+                       const WasmTransform* tr,
+                       const GLfloat verts[][3],
+                       int n,
+                       const GLfloat color[4])
+{
+    static const GLfloat zero_uv[2] = {0.0f, 0.0f};
+    GLfloat center[3], a[3], b[3];
+    int i;
+    if (n < 3) return;
+    transform_point(tr, verts[0], center);
+    for (i = 1; i + 1 < n; i++) {
+        transform_point(tr, verts[i],   a);
+        transform_point(tr, verts[i+1], b);
+        push_vertex(batch, center, zero_uv, color);
+        push_vertex(batch, a,      zero_uv, color);
+        push_vertex(batch, b,      zero_uv, color);
+    }
+}
+
 /* Triangulate a GL_QUAD_STRIP-ordered local vertex list (n must be even,
    >= 4). Strip rule: quad i uses verts {2i, 2i+1, 2i+3, 2i+2} (v3/v2 swap).
    Untextured path; UVs pushed as zero. */
@@ -383,6 +405,55 @@ static void build_dividers(void)
     }
 }
 
+static void build_caps(void)
+{
+    static const GLfloat color[4] = {0.6f, 0.6f, 0.6f, 1.0f};
+    static const double lane_x[] = {0.0, -36.0, -72.0, -108.0};
+    /* Strip verts in GL_QUAD_STRIP pair order, matching bowling.c:548-563.
+       height=0.5 inlined; height/2 = 0.25. */
+    static const GLfloat strip[12][3] = {
+        {0.0f,  0.0f,  0.0f},
+        {0.0f,  0.5f,  0.0f},
+        {0.0f,  0.0f,  0.1f},
+        {0.0f,  0.5f,  0.1f},
+        {0.2f,  0.0f,  0.2f},
+        {0.2f,  0.25f, 0.2f},
+        {0.8f,  0.0f,  0.2f},
+        {0.8f,  0.25f, 0.2f},
+        {0.9f,  0.0f,  0.1f},
+        {0.9f,  0.5f,  0.1f},
+        {1.0f,  0.0f,  0.0f},
+        {1.0f,  0.5f,  0.0f}
+    };
+    /* Top polygon (treated as fan from v0), CCW from bowling.c:568-573. */
+    static const GLfloat top[6][3] = {
+        {0.0f, 0.5f,  0.0f},
+        {0.0f, 0.5f,  0.1f},
+        {0.2f, 0.25f, 0.2f},
+        {0.8f, 0.25f, 0.2f},
+        {0.9f, 0.5f,  0.1f},
+        {1.0f, 0.5f,  0.0f}
+    };
+    /* Three caps per lane (bowling.c:805, 807, 812). All ry=180. */
+    struct { double dx, dy, dz, sx, sy, sz; } caps[3] = {
+        {16.5, 0.0,   0.0, 4.0, 1.0, 10.0},
+        {16.0, 3.0, -30.0, 3.0, 0.5,  5.0},
+        {33.5, 0.0,   0.0, 2.0, 1.0,  5.0}
+    };
+    WasmStaticBatch* batch = begin_batch(0);
+    int lane, c;
+    if (!batch) return;
+    batch->use_texture = GL_FALSE;
+    for (lane = 0; lane < 4; lane++) {
+        for (c = 0; c < 3; c++) {
+            WasmTransform tr = {lane_x[lane] + caps[c].dx, caps[c].dy, caps[c].dz,
+                                caps[c].sx, caps[c].sy, caps[c].sz, 0.0, 180.0};
+            append_quad_strip(batch, &tr, strip, 12, color);
+            append_fan(batch, &tr, top, 6, color);
+        }
+    }
+}
+
 static GLuint compile_shader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
@@ -451,6 +522,7 @@ void wasm_static_geom_init(void)
     build_ceilings();
     build_ducts();
     build_dividers();
+    build_caps();
 
     if (!g_vertex_count || !build_program()) {
         printf("[wasm static geom] disabled; setup failed\n");
