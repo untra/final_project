@@ -217,7 +217,7 @@ static void ball(double x,double y,double z,double r, float color[])
     {
       static int v_logged = 0;
       if (!v_logged) {
-        printf("WASM BUILD vB31: round-9 fix bowling_pin per-vertex glNormal3f (LEGACY_GL_EMULATION drops current-normal between vertices)\n");
+        printf("WASM BUILD vB33: round-11 port alley() gutters + arrows to static-VBO (Lambert-lit)\n");
         v_logged = 1;
       }
     }
@@ -307,6 +307,13 @@ static void ball(double x,double y,double z,double r, float color[])
       glLightfv(GL_LIGHT0,GL_DIFFUSE ,Diffuse);
       glLightfv(GL_LIGHT0,GL_SPECULAR,Specular);
       glLightfv(GL_LIGHT0,GL_POSITION,Position[0]);
+#ifdef __EMSCRIPTEN__
+      /* Mirror the world-space light state into the static-VBO shader.
+         glLightfv(...GL_POSITION...) stores the eye-space transform of the
+         position; the static-VBO shader expects world space, so we hand the
+         pre-modelview Position[0] off directly here. */
+      wasm_static_geom_set_light(Position[0], Ambient, Diffuse, light);
+#endif
       glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,32.0f);
       // glEnable(GL_LIGHT1);
       // glLightfv(GL_LIGHT1,GL_AMBIENT ,Ambient);
