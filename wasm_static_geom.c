@@ -66,8 +66,7 @@ static const char* k_fragment_shader =
     "varying vec2 v_uv;\n"
     "varying vec4 v_color;\n"
     "void main(void) {\n"
-    "  vec4 t = texture2D(u_texture, v_uv);\n"
-    "  gl_FragColor = vec4(v_uv.x, v_uv.y, 0.5, 1.0) + t * 0.0;\n"
+    "  gl_FragColor = texture2D(u_texture, v_uv) * v_color;\n"
     "}\n";
 
 static int reserve_vertices(size_t add)
@@ -148,7 +147,7 @@ static void append_quad(WasmStaticBatch* batch,
 
 static void build_walls(void)
 {
-    static const GLfloat color[4] = {0.8f, 0.4f, 0.4f, 1.0f};
+    static const GLfloat color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     static const GLfloat local[4][3] = {
         {0.0f, 0.0f, 0.0f},
         {0.0f, 0.0f, 3.0f},
@@ -189,11 +188,7 @@ static void build_murals(void)
     int i;
     for (i = 0; i < 4; i++) {
         WasmStaticBatch* batch = begin_batch(mural_texture[i]);
-        /* vB14 diag: relocate murals from z=-10 (world z=108..110) to z=-100
-           (world z=18..20) -- close to spawn camera. If murals render UV
-           gradient here but not at the original z, the bug is position/far-
-           plane/depth-related, not geometry/sampling. */
-        WasmTransform tr = {xs[i], 0.0, -100.0, 12.0, 12.0, 10.0, 0.0, 0.0};
+        WasmTransform tr = {xs[i], 0.0, -10.0, 12.0, 12.0, 10.0, 0.0, 0.0};
         if (batch) append_quad(batch, &tr, local, uv, color);
     }
 }
@@ -419,6 +414,7 @@ void wasm_static_geom_draw(void)
 {
     GLfloat projection[16];
     GLfloat modelview[16];
+    GLfloat prev_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     GLint prev_program = 0;
     GLint prev_array_buffer = 0;
     GLint prev_active_texture = GL_TEXTURE0;
@@ -430,6 +426,13 @@ void wasm_static_geom_draw(void)
 
     glGetFloatv(GL_PROJECTION_MATRIX, projection);
     glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
+    /* Round-7 fix: binding generic vertex attribute slot 2 (color) and then
+       disabling it clobbers GL_CURRENT_COLOR to (0,0,0,0) under Emscripten's
+       LEGACY_GL_EMULATION. Downstream immediate-mode draws (bowling pins —
+       which call glColor3f only INSIDE glBegin and rely on the pre-Begin
+       current color being sane) then render with alpha=0 and become
+       invisible. Snapshot the current color so we can restore it on exit. */
+    glGetFloatv(GL_CURRENT_COLOR, prev_color);
     glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &prev_array_buffer);
     glGetIntegerv(GL_ACTIVE_TEXTURE, &prev_active_texture);
@@ -462,8 +465,6 @@ void wasm_static_geom_draw(void)
     for (i = 0; i < g_batch_count; i++) {
         GLenum err;
         if (g_batches[i].count <= 0) continue;
-        /* vB13 diag: re-enable all batches but use UV-as-color shader so
-           each surface shows a uv gradient that proves geometry/uv flow. */
         glBindTexture(GL_TEXTURE_2D, g_batches[i].texture);
         glDrawArrays(GL_TRIANGLES, g_batches[i].first, g_batches[i].count);
         err = glGetError();
@@ -484,6 +485,8 @@ void wasm_static_geom_draw(void)
     glBindTexture(GL_TEXTURE_2D, (GLuint)prev_texture);
     glActiveTexture((GLenum)prev_active_texture);
     glUseProgram((GLuint)prev_program);
+    /* Restore GL_CURRENT_COLOR — see snapshot above for why. */
+    glColor4f(prev_color[0], prev_color[1], prev_color[2], prev_color[3]);
 }
 
 void wasm_static_geom_shutdown(void)

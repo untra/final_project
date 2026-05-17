@@ -224,6 +224,34 @@ try {
                               'BracketLeft', 'BracketLeft', 'BracketLeft', 'BracketLeft',
                               'BracketLeft', 'BracketLeft', 'BracketLeft',
                               'ArrowUp', 'ArrowUp'] },
+    // angle-6: back-wall mural row. From angle-5's mode-0 pose press 'p'
+    // once to land in mode 1 with eye reset to (0, 0, 100, th=ph=0).
+    // Walk back KeyS x46 (each 's' subtracts 2 from zOffset with th=0;
+    // ends at z=8). Strafe to mural-row center via KeyD x19 (each 'd'
+    // adds -2 to xOffset; ends at x=-38, the geometric center of
+    // murals at x={-2,-38,-74,-110}). With horizontal FOV 60° (fov_y
+    // at aspect 1.502 → fov_x ~81.8°), half-FOV at d=100 covers ±87
+    // world units which spans the full -72..+72 half-width of the
+    // mural row from x=-38 center. Mural y=6..36 from eye_y=0 sits
+    // 3.4°..19.8° above the horizon — entirely inside the ±30°
+    // vertical half-FOV. All four colored murals visible across the
+    // upper-center of the frame.
+    { name: 'angle-6',
+      keys: ['KeyP',
+             ...Array(46).fill('KeyS'),
+             ...Array(19).fill('KeyD')] },
+    // angle-7: pin-row close-up. From angle-6's mode-1 pose press 'p' once
+    // (1 -> 2, eye reset to (0,0,100), th=ph=0). Walk forward KeyW x3 to
+    // z=106 (5 units in front of pin row at z=111-115). One BracketLeft
+    // clamps yOffset to 2 so eye sits just above floor. Lane 1 head pin
+    // at world (5, 0, 111) sits ~7 units ahead — its 1.5-unit height
+    // subtends ~12° vertical (~130px), and the body (white + red bands)
+    // is clearly recognizable. With 8 lanes spread x=-103..24, several
+    // pin rows are visible across the frame at this distance.
+    { name: 'angle-7',
+      keys: ['KeyP',
+             ...Array(3).fill('KeyW'),
+             'BracketLeft'] },
   ];
 
   // angle-0 keeps the original `latest.png` filename for backward compat with

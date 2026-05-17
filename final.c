@@ -217,7 +217,7 @@ static void ball(double x,double y,double z,double r, float color[])
     {
       static int v_logged = 0;
       if (!v_logged) {
-        printf("WASM BUILD vB14-diag: murals relocated to z=20 + UV-color shader\n");
+        printf("WASM BUILD vB29: round-7 pin visibility fix — hoist glColor3f outside glBegin in bowling_pin (LEGACY_GL_EMULATION drops in-Begin color)\n");
         v_logged = 1;
       }
     }

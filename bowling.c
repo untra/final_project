@@ -77,8 +77,13 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   double alphaheight = 0.0;
   double alphatilt = 0.0;
   double turning = 0.0;
-  glBegin(GL_TRIANGLE_FAN);
+  /* glColor3f calls are hoisted OUTSIDE each glBegin block: Emscripten's
+     LEGACY_GL_EMULATION does not propagate in-Begin glColor3f to the per-
+     vertex color attribute, so pins rendered as alpha=0 invisibles on WASM.
+     The semantics are identical on native (glColor3f anywhere outside
+     Begin/End sets GL_CURRENT_COLOR; the next vertex picks it up). */
   glColor3f(1,1,1);
+  glBegin(GL_TRIANGLE_FAN);
   glNormal3f( 0, -1, 0);
   glVertex3f(0,0, 0);
   //bottom
@@ -100,8 +105,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     height = alphaheight;
     alphaheight +=  0.5;
     alphaheight += additive;
-    glBegin(GL_QUAD_STRIP);
-    if((k == 13))
+    if (k == 13)
     {
       glColor3f(0.765,0.0,0.2);
     }
@@ -109,6 +113,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     {
       glColor3f(1,1,1);
     }
+    glBegin(GL_QUAD_STRIP);
     for(i = 0; i <= resolution ; i++)
     {
       f = (double)i / resolution;
@@ -123,8 +128,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.7;
   height = alphaheight;
   alphaheight += 0.5;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(1,1,1);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -138,8 +143,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.75;
   height = alphaheight;
   alphaheight += 0.5;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(0.765,0.0,0.2);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -153,8 +158,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.85;
   height = alphaheight;
   alphaheight += 1.0;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(1,1,1);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -168,8 +173,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.75;
   height = alphaheight;
   alphaheight += 0.5;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(1,1,1);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -183,8 +188,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.60;
   height = alphaheight;
   alphaheight += 0.35;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(1,1,1);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -198,8 +203,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   alphawidth = 0.15;
   height = alphaheight;
   alphaheight += 0.2;
-  glBegin(GL_QUAD_STRIP);
   glColor3f(1,1,1);
+  glBegin(GL_QUAD_STRIP);
   for(i = 0; i <= resolution ; i++)
   {
     f = (double)i / resolution;
@@ -208,8 +213,8 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
-  glBegin(GL_TRIANGLE_FAN);
   glColor3f(1,1,1);
+  glBegin(GL_TRIANGLE_FAN);
   glNormal3f( 0, 1, 0);
   glVertex3f(0,alphaheight, 0);
   //top
