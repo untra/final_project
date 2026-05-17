@@ -153,6 +153,27 @@ static void append_quad(WasmStaticBatch* batch,
     push_vertex(batch, p[3], uv[3], color);
 }
 
+/* Triangulate a GL_QUAD_STRIP-ordered local vertex list (n must be even,
+   >= 4). Strip rule: quad i uses verts {2i, 2i+1, 2i+3, 2i+2} (v3/v2 swap).
+   Untextured path; UVs pushed as zero. */
+static void append_quad_strip(WasmStaticBatch* batch,
+                              const WasmTransform* tr,
+                              const GLfloat verts[][3],
+                              int n,
+                              const GLfloat color[4])
+{
+    static const GLfloat zero_uv[4][2] = {{0,0},{0,0},{0,0},{0,0}};
+    int i;
+    for (i = 0; i + 3 < n; i += 2) {
+        GLfloat local[4][3];
+        local[0][0] = verts[i  ][0]; local[0][1] = verts[i  ][1]; local[0][2] = verts[i  ][2];
+        local[1][0] = verts[i+1][0]; local[1][1] = verts[i+1][1]; local[1][2] = verts[i+1][2];
+        local[2][0] = verts[i+3][0]; local[2][1] = verts[i+3][1]; local[2][2] = verts[i+3][2];
+        local[3][0] = verts[i+2][0]; local[3][1] = verts[i+2][1]; local[3][2] = verts[i+2][2];
+        append_quad(batch, tr, local, zero_uv, color);
+    }
+}
+
 static void build_walls(void)
 {
     static const GLfloat color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -316,6 +337,52 @@ static void build_ducts(void)
     }
 }
 
+static void build_dividers(void)
+{
+    static const GLfloat color[4] = {0.6f, 0.6f, 0.6f, 1.0f};
+    static const double lane_x[] = {0.0, -36.0, -72.0, -108.0};
+    const double height = 0.5;
+    const int length = 12;
+    /* Two dividers per lane (bowling.c:804, 811):
+       div1 at x+12.5 scale (4,1,10), div2 at x+31.5 scale (2,1,10). */
+    struct { double dx, sx; } divs[2] = {
+        {12.5, 4.0}, {31.5, 2.0}
+    };
+    WasmStaticBatch* batch = begin_batch(0);
+    int lane, instance, i;
+    if (!batch) return;
+    batch->use_texture = GL_FALSE;
+    for (lane = 0; lane < 4; lane++) {
+        for (instance = 0; instance < 2; instance++) {
+            WasmTransform tr = {lane_x[lane] + divs[instance].dx, 0.0, 0.0,
+                                divs[instance].sx, 1.0, 10.0, 0.0, 0.0};
+            for (i = 0; i < length; i++) {
+                GLfloat inner[4][3] = {
+                    {0.0f, 0.0f,            (GLfloat)i},
+                    {0.0f, 0.0f,            (GLfloat)(i+1)},
+                    {0.0f, (GLfloat)height, (GLfloat)i},
+                    {0.0f, (GLfloat)height, (GLfloat)(i+1)}
+                };
+                GLfloat top[4][3] = {
+                    {0.0f, (GLfloat)height, (GLfloat)i},
+                    {0.0f, (GLfloat)height, (GLfloat)(i+1)},
+                    {1.0f, (GLfloat)height, (GLfloat)i},
+                    {1.0f, (GLfloat)height, (GLfloat)(i+1)}
+                };
+                GLfloat outer[4][3] = {
+                    {1.0f, (GLfloat)height, (GLfloat)i},
+                    {1.0f, (GLfloat)height, (GLfloat)(i+1)},
+                    {1.0f, 0.0f,            (GLfloat)i},
+                    {1.0f, 0.0f,            (GLfloat)(i+1)}
+                };
+                append_quad_strip(batch, &tr, inner, 4, color);
+                append_quad_strip(batch, &tr, top,   4, color);
+                append_quad_strip(batch, &tr, outer, 4, color);
+            }
+        }
+    }
+}
+
 static GLuint compile_shader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
@@ -383,6 +450,7 @@ void wasm_static_geom_init(void)
     build_floor_panels();
     build_ceilings();
     build_ducts();
+    build_dividers();
 
     if (!g_vertex_count || !build_program()) {
         printf("[wasm static geom] disabled; setup failed\n");
