@@ -39,7 +39,7 @@ static GLint g_u_projection = -1;
 static GLint g_u_modelview = -1;
 static GLint g_u_texture = -1;
 static GLint g_u_use_texture = -1;
-static WasmStaticBatch g_batches[8];
+static WasmStaticBatch g_batches[16];
 static int g_batch_count;
 static int g_ready;
 
