@@ -217,7 +217,7 @@ static void ball(double x,double y,double z,double r, float color[])
     {
       static int v_logged = 0;
       if (!v_logged) {
-        printf("WASM BUILD vB29: round-7 pin visibility fix — hoist glColor3f outside glBegin in bowling_pin (LEGACY_GL_EMULATION drops in-Begin color)\n");
+        printf("WASM BUILD vB30: round-8 port double_lane interior helpers (divider/upcurve/cap/ball_return_body) to static-VBO pipeline\n");
         v_logged = 1;
       }
     }
