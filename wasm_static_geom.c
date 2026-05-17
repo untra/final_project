@@ -153,6 +153,24 @@ static void append_quad(WasmStaticBatch* batch,
     push_vertex(batch, p[3], uv[3], color);
 }
 
+/* Emit a single triangle from three local points; untextured. */
+static void append_triangle(WasmStaticBatch* batch,
+                            const WasmTransform* tr,
+                            const GLfloat p0[3],
+                            const GLfloat p1[3],
+                            const GLfloat p2[3],
+                            const GLfloat color[4])
+{
+    static const GLfloat zero_uv[2] = {0.0f, 0.0f};
+    GLfloat t0[3], t1[3], t2[3];
+    transform_point(tr, p0, t0);
+    transform_point(tr, p1, t1);
+    transform_point(tr, p2, t2);
+    push_vertex(batch, t0, zero_uv, color);
+    push_vertex(batch, t1, zero_uv, color);
+    push_vertex(batch, t2, zero_uv, color);
+}
+
 /* Emit (n - 2) triangles as a fan around verts[0]. Used for
    GL_TRIANGLE_FAN and GL_POLYGON (convex). Untextured; zero UV. */
 static void append_fan(WasmStaticBatch* batch,
@@ -529,6 +547,198 @@ static void build_upcurves(void)
     }
 }
 
+static void build_ball_returns(void)
+{
+    static const GLfloat red[4]   = {0.6f, 0.0f, 0.0f, 1.0f};
+    static const GLfloat green[4] = {0.0f, 0.6f, 0.0f, 1.0f};
+    static const GLfloat blue[4]  = {0.0f, 0.0f, 0.6f, 1.0f};
+    static const GLfloat gray[4]  = {0.6f, 0.6f, 0.6f, 1.0f};
+    static const GLfloat black[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    static const double lane_x[] = {0.0, -36.0, -72.0, -108.0};
+    /* 8 base/platform/flat/top corner points; y values inlined
+       (base=0.0, platform=0.3, flat=0.5, top=0.6). See bowling.c:338-353. */
+    static const GLfloat base_a[3]     = {0.0f,  0.0f, 0.0f};
+    static const GLfloat base_b[3]     = {0.0f,  0.0f, 0.6f};
+    static const GLfloat base_c[3]     = {0.5f,  0.0f, 0.6f};
+    static const GLfloat base_d[3]     = {0.5f,  0.0f, 0.0f};
+    static const GLfloat platform_a[3] = {0.1f,  0.3f, 0.15f};
+    static const GLfloat platform_b[3] = {0.1f,  0.3f, 0.5f};
+    static const GLfloat platform_c[3] = {0.4f,  0.3f, 0.5f};
+    static const GLfloat platform_d[3] = {0.4f,  0.3f, 0.15f};
+    static const GLfloat flat_a[3]     = {0.05f, 0.5f, 0.25f};
+    static const GLfloat flat_b[3]     = {0.05f, 0.5f, 0.5f};
+    static const GLfloat flat_c[3]     = {0.45f, 0.5f, 0.5f};
+    static const GLfloat flat_d[3]     = {0.45f, 0.5f, 0.25f};
+    static const GLfloat top_a[3]      = {0.15f, 0.6f, 0.3f};
+    static const GLfloat top_b[3]      = {0.15f, 0.6f, 0.6f};
+    static const GLfloat top_c[3]      = {0.35f, 0.6f, 0.6f};
+    static const GLfloat top_d[3]      = {0.35f, 0.6f, 0.3f};
+    static const GLfloat zero_uv[4][2] = {{0,0},{0,0},{0,0},{0,0}};
+    WasmStaticBatch* batch = begin_batch(0);
+    int lane, i;
+    if (!batch) return;
+    batch->use_texture = GL_FALSE;
+    for (lane = 0; lane < 4; lane++) {
+        WasmTransform tr = {lane_x[lane] + 17.0, 0.0, -15.0,
+                            10.0, 10.0, 10.0, 0.0, 180.0};
+        /* Right strip: red. Pairs (base_a,b), (platform_a,b), (flat_a,b), (top_a,b). */
+        {
+            GLfloat strip[8][3];
+            memcpy(strip[0], base_a,     sizeof(base_a));
+            memcpy(strip[1], base_b,     sizeof(base_b));
+            memcpy(strip[2], platform_a, sizeof(platform_a));
+            memcpy(strip[3], platform_b, sizeof(platform_b));
+            memcpy(strip[4], flat_a,     sizeof(flat_a));
+            memcpy(strip[5], flat_b,     sizeof(flat_b));
+            memcpy(strip[6], top_a,      sizeof(top_a));
+            memcpy(strip[7], top_b,      sizeof(top_b));
+            append_quad_strip(batch, &tr, strip, 8, red);
+        }
+        /* Left strip: green. Pairs (base_c,d), (platform_c,d), (flat_c,d), (top_c,d). */
+        {
+            GLfloat strip[8][3];
+            memcpy(strip[0], base_c,     sizeof(base_c));
+            memcpy(strip[1], base_d,     sizeof(base_d));
+            memcpy(strip[2], platform_c, sizeof(platform_c));
+            memcpy(strip[3], platform_d, sizeof(platform_d));
+            memcpy(strip[4], flat_c,     sizeof(flat_c));
+            memcpy(strip[5], flat_d,     sizeof(flat_d));
+            memcpy(strip[6], top_c,      sizeof(top_c));
+            memcpy(strip[7], top_d,      sizeof(top_d));
+            append_quad_strip(batch, &tr, strip, 8, green);
+        }
+        /* Back strip: blue. Pairs (base_a,d), (platform_a,d), (flat_a,d), (top_a,d). */
+        {
+            GLfloat strip[8][3];
+            memcpy(strip[0], base_a,     sizeof(base_a));
+            memcpy(strip[1], base_d,     sizeof(base_d));
+            memcpy(strip[2], platform_a, sizeof(platform_a));
+            memcpy(strip[3], platform_d, sizeof(platform_d));
+            memcpy(strip[4], flat_a,     sizeof(flat_a));
+            memcpy(strip[5], flat_d,     sizeof(flat_d));
+            memcpy(strip[6], top_a,      sizeof(top_a));
+            memcpy(strip[7], top_d,      sizeof(top_d));
+            append_quad_strip(batch, &tr, strip, 8, blue);
+        }
+        /* Top quad: gray. CCW (top_a, top_b, top_c, top_d). */
+        {
+            GLfloat local[4][3];
+            memcpy(local[0], top_a, sizeof(top_a));
+            memcpy(local[1], top_b, sizeof(top_b));
+            memcpy(local[2], top_c, sizeof(top_c));
+            memcpy(local[3], top_d, sizeof(top_d));
+            append_quad(batch, &tr, local, zero_uv, gray);
+        }
+        /* Head lip: gray. (flat_b, flat_c, top_c, top_b). */
+        {
+            GLfloat local[4][3];
+            memcpy(local[0], flat_b, sizeof(flat_b));
+            memcpy(local[1], flat_c, sizeof(flat_c));
+            memcpy(local[2], top_c,  sizeof(top_c));
+            memcpy(local[3], top_b,  sizeof(top_b));
+            append_quad(batch, &tr, local, zero_uv, gray);
+        }
+        /* Base lip: gray. (base_b, base_c, platform_c, platform_b). */
+        {
+            GLfloat local[4][3];
+            memcpy(local[0], base_b,     sizeof(base_b));
+            memcpy(local[1], base_c,     sizeof(base_c));
+            memcpy(local[2], platform_c, sizeof(platform_c));
+            memcpy(local[3], platform_b, sizeof(platform_b));
+            append_quad(batch, &tr, local, zero_uv, gray);
+        }
+        /* Ball-return face: gray. (flat_b, flat_c, platform_c, platform_b). */
+        {
+            GLfloat local[4][3];
+            memcpy(local[0], flat_b,     sizeof(flat_b));
+            memcpy(local[1], flat_c,     sizeof(flat_c));
+            memcpy(local[2], platform_c, sizeof(platform_c));
+            memcpy(local[3], platform_b, sizeof(platform_b));
+            append_quad(batch, &tr, local, zero_uv, gray);
+        }
+        /* Ball-return center: black fan. Center (0.25, 0.4, 0.501); 25
+           perimeter verts on circle of radius 0.1 in z=0.501 plane at
+           angle 15° × i for i=0..24. Cos/Sin from CSCIx229.h are in degrees. */
+        {
+            GLfloat fan[26][3];
+            fan[0][0] = 0.25f; fan[0][1] = 0.4f; fan[0][2] = 0.501f;
+            for (i = 0; i <= 24; i++) {
+                fan[i+1][0] = 0.25f + 0.1f * (GLfloat)Cos(15.0 * i);
+                fan[i+1][1] = 0.4f  + 0.1f * (GLfloat)Sin(15.0 * i);
+                fan[i+1][2] = 0.501f;
+            }
+            append_fan(batch, &tr, fan, 26, black);
+        }
+        /* Left extension, bowling.c:452-458. */
+        {
+            GLfloat strip[6][3] = {
+                {0.10f, 0.30f, 0.50f}, {0.10f, 0.30f, 1.50f},
+                {0.10f, 0.32f, 0.50f}, {0.10f, 0.32f, 1.50f},
+                {0.12f, 0.30f, 0.50f}, {0.12f, 0.30f, 1.50f}
+            };
+            append_quad_strip(batch, &tr, strip, 6, black);
+        }
+        /* Right extension, bowling.c:463-469. */
+        {
+            GLfloat strip[6][3] = {
+                {0.40f, 0.30f, 0.50f}, {0.40f, 0.30f, 1.50f},
+                {0.40f, 0.32f, 0.50f}, {0.40f, 0.32f, 1.50f},
+                {0.38f, 0.30f, 0.50f}, {0.38f, 0.30f, 1.50f}
+            };
+            append_quad_strip(batch, &tr, strip, 6, black);
+        }
+        /* Middle extension, bowling.c:474-480. */
+        {
+            GLfloat strip[6][3] = {
+                {0.27f, 0.30f, 0.50f}, {0.27f, 0.30f, 1.50f},
+                {0.25f, 0.32f, 0.50f}, {0.25f, 0.32f, 1.50f},
+                {0.23f, 0.30f, 0.50f}, {0.23f, 0.30f, 1.50f}
+            };
+            append_quad_strip(batch, &tr, strip, 6, black);
+        }
+        /* Downsplit, bowling.c:485-495. 10-vert quad strip — last two
+           verts duplicate the first two to close the loop. */
+        {
+            GLfloat strip[10][3] = {
+                {0.27f, 0.30f, 1.45f}, {0.27f, 0.30f, 1.50f},
+                {0.25f, 0.00f, 1.35f}, {0.25f, 0.00f, 1.40f},
+                {0.23f, 0.30f, 1.45f}, {0.23f, 0.30f, 1.50f},
+                {0.25f, 0.00f, 1.35f}, {0.25f, 0.00f, 1.40f},
+                {0.27f, 0.30f, 1.45f}, {0.27f, 0.30f, 1.50f}
+            };
+            append_quad_strip(batch, &tr, strip, 10, black);
+        }
+        /* Downsplit faces, bowling.c:497-509. Two triangles. */
+        {
+            GLfloat front_p0[3] = {0.23f, 0.30f, 1.50f};
+            GLfloat front_p1[3] = {0.27f, 0.30f, 1.50f};
+            GLfloat front_p2[3] = {0.25f, 0.00f, 1.40f};
+            GLfloat back_p0[3]  = {0.23f, 0.30f, 1.45f};
+            GLfloat back_p1[3]  = {0.27f, 0.30f, 1.45f};
+            GLfloat back_p2[3]  = {0.25f, 0.00f, 1.35f};
+            append_triangle(batch, &tr, front_p0, front_p1, front_p2, black);
+            append_triangle(batch, &tr, back_p0,  back_p1,  back_p2,  black);
+        }
+        /* End face, bowling.c:511-522. Two coplanar quads at z=1.5. */
+        {
+            GLfloat q1[4][3] = {
+                {0.40f, 0.30f, 1.50f},
+                {0.40f, 0.32f, 1.50f},
+                {0.25f, 0.32f, 1.50f},
+                {0.25f, 0.30f, 1.50f}
+            };
+            GLfloat q2[4][3] = {
+                {0.25f, 0.30f, 1.50f},
+                {0.25f, 0.32f, 1.50f},
+                {0.10f, 0.32f, 1.50f},
+                {0.10f, 0.30f, 1.50f}
+            };
+            append_quad(batch, &tr, q1, zero_uv, black);
+            append_quad(batch, &tr, q2, zero_uv, black);
+        }
+    }
+}
+
 static GLuint compile_shader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
@@ -599,6 +809,7 @@ void wasm_static_geom_init(void)
     build_dividers();
     build_caps();
     build_upcurves();
+    build_ball_returns();
 
     if (!g_vertex_count || !build_program()) {
         printf("[wasm static geom] disabled; setup failed\n");
