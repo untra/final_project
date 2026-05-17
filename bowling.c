@@ -89,6 +89,12 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   //bottom
   for(i = 0; i <= resolution ; i++)
   {
+    /* Emit normal before each fan rim vertex: Emscripten's
+       LEGACY_GL_EMULATION immediate-mode buffer does not propagate
+       glNormal3f to subsequent glVertex3f calls within a Begin/End
+       block — see the QUAD_STRIP fix below. The fan center vertex
+       above already had its normal; rim vertices need theirs too. */
+    glNormal3f( 0, -1, 0);
     glVertex3f(Cos(fraction*i),0, Sin(fraction*i));
   }
   glEnd();
@@ -117,8 +123,15 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     for(i = 0; i <= resolution ; i++)
     {
       f = (double)i / resolution;
+      /* glNormal3f emitted before EACH glVertex3f: Emscripten's
+         LEGACY_GL_EMULATION immediate-mode buffer does not propagate
+         the "current normal" to subsequent vertices within Begin/End.
+         Sharing one normal across two vertices produced gigantic slab
+         geometry on WASM (round-9 bug). bowling_ball at bowling.c:1035
+         already follows per-vertex pattern and renders correctly. */
       glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
       glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+      glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
       glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
     }
     glEnd();
@@ -135,6 +148,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -150,6 +164,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -165,6 +180,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -180,6 +196,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -195,6 +212,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -210,6 +228,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
     f = (double)i / resolution;
     glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( width * Cos(fraction*i), height, width * Sin(fraction*i));
+    glNormal3f( 0.5 * Cos(fraction*i), 0.5 , 0.5 * Sin(fraction*i));
     glVertex3f( alphawidth * Cos(fraction*i), alphaheight, alphawidth * Sin(fraction*i));
   }
   glEnd();
@@ -220,6 +239,7 @@ void bowling_pin(double x, double y, double z, double xScale, double yScale, dou
   //top
   for(i = 0; i <= resolution ; i++)
   {
+    glNormal3f( 0, 1, 0);
     glVertex3f(alphawidth * Sin(fraction*i), alphaheight, alphawidth * Cos(fraction*i));
   }
   glEnd();
