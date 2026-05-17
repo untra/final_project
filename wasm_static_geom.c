@@ -454,6 +454,81 @@ static void build_caps(void)
     }
 }
 
+static void build_upcurves(void)
+{
+    static const GLfloat color[4] = {0.6f, 0.6f, 0.6f, 1.0f};
+    static const double lane_x[] = {0.0, -36.0, -72.0, -108.0};
+    /* Precomputed curve profile from bowling.c:278-279. Hand-tuned
+       smooth ramp, NOT from Cos/Sin macros — keep verbatim. */
+    static const double icos[7] = {1.0, 0.985, 0.905, 0.707, 0.423, 0.174, 0.0};
+    static const double isin[7] = {0.0, 0.174, 0.423, 0.707, 0.905, 0.985, 1.0};
+    const double far_z = 2.0;
+    /* Two upcurves per lane (bowling.c:803, 810), z=100. */
+    struct { double dx, sx; } ups[2] = {
+        {12.5, 4.0}, {31.5, 2.0}
+    };
+    WasmStaticBatch* batch = begin_batch(0);
+    int lane, instance, i;
+    if (!batch) return;
+    batch->use_texture = GL_FALSE;
+    for (lane = 0; lane < 4; lane++) {
+        for (instance = 0; instance < 2; instance++) {
+            WasmTransform tr = {lane_x[lane] + ups[instance].dx, 0.0, 100.0,
+                                ups[instance].sx, 1.0, 10.0, 0.0, 0.0};
+            /* Strip 1: front curved profile. 7 loop pairs + 1 trailing
+               pair = 16 verts → 7 quads (last may be degenerate, matches
+               native). */
+            {
+                GLfloat front[16][3];
+                for (i = 0; i < 7; i++) {
+                    double j = 5.5 * icos[i];
+                    front[2*i  ][0] = 0.0f;
+                    front[2*i  ][1] = (GLfloat)(6.0 - j);
+                    front[2*i  ][2] = (GLfloat)isin[i];
+                    front[2*i+1][0] = 1.0f;
+                    front[2*i+1][1] = (GLfloat)(6.0 - j);
+                    front[2*i+1][2] = (GLfloat)isin[i];
+                }
+                front[14][0] = 0.0f; front[14][1] = 6.0f; front[14][2] = 1.0f;
+                front[15][0] = 1.0f; front[15][1] = 6.0f; front[15][2] = 1.0f;
+                append_quad_strip(batch, &tr, front, 16, color);
+            }
+            /* Strip 2: right side wall. */
+            {
+                GLfloat right[16][3];
+                for (i = 0; i < 7; i++) {
+                    double j = 5.5 * icos[i];
+                    right[2*i  ][0] = 1.0f;
+                    right[2*i  ][1] = (GLfloat)(6.0 - j);
+                    right[2*i  ][2] = (GLfloat)isin[i];
+                    right[2*i+1][0] = 1.0f;
+                    right[2*i+1][1] = (GLfloat)(6.0 - j);
+                    right[2*i+1][2] = (GLfloat)far_z;
+                }
+                right[14][0] = 1.0f; right[14][1] = 6.0f; right[14][2] = 1.0f;
+                right[15][0] = 1.0f; right[15][1] = 6.0f; right[15][2] = (GLfloat)far_z;
+                append_quad_strip(batch, &tr, right, 16, color);
+            }
+            /* Strip 3: left side wall. */
+            {
+                GLfloat left[16][3];
+                for (i = 0; i < 7; i++) {
+                    double j = 5.5 * icos[i];
+                    left[2*i  ][0] = 0.0f;
+                    left[2*i  ][1] = (GLfloat)(6.0 - j);
+                    left[2*i  ][2] = (GLfloat)isin[i];
+                    left[2*i+1][0] = 0.0f;
+                    left[2*i+1][1] = (GLfloat)(6.0 - j);
+                    left[2*i+1][2] = (GLfloat)far_z;
+                }
+                left[14][0] = 0.0f; left[14][1] = 6.0f; left[14][2] = 1.0f;
+                left[15][0] = 0.0f; left[15][1] = 6.0f; left[15][2] = (GLfloat)far_z;
+                append_quad_strip(batch, &tr, left, 16, color);
+            }
+        }
+    }
+}
+
 static GLuint compile_shader(GLenum type, const char* source)
 {
     GLuint shader = glCreateShader(type);
@@ -523,6 +598,7 @@ void wasm_static_geom_init(void)
     build_ducts();
     build_dividers();
     build_caps();
+    build_upcurves();
 
     if (!g_vertex_count || !build_program()) {
         printf("[wasm static geom] disabled; setup failed\n");
